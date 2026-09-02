@@ -7,14 +7,16 @@ comment beside the block it came from.
 
 ## Status
 
-**Builds clean.** 3 pages in 269ms, zero errors, zero warnings, verified in
-this session and the output committed to `site/dist/`.
+**Builds clean.** 3 pages, zero errors, zero warnings. `site/dist/` is build
+output and is not committed — `.gitignore` excludes it, and Railway builds from
+source.
 
 ```bash
 cd site
 npm install --omit=optional
 npm install @rolldown/binding-linux-x64-gnu@1.2.7   # see note below
 npm run build
+node bin/make-standalone.mjs                        # refresh site/standalone/
 ```
 
 ### The install note that matters
@@ -38,8 +40,9 @@ site/
                 WhyUs.astro About.astro Faq.astro Clients.astro
                 ClosingCta.astro Footer.astro EstimateForm.astro
     pages/      index.astro privacy-policy.astro thank-you.astro
-  dist/         astro build output, directory format
+  dist/         astro build output, directory format (gitignored)
   standalone/   flat single-file HTML, CSS inlined, opens from file://
+  bin/make-standalone.mjs   regenerates standalone/ from dist/
 bin/where.py    gate-record reader from the earlier scaffolding attempt
 ```
 
@@ -48,7 +51,8 @@ content lives inline in the components. Astro `^7.0.0`, `output: 'static'`.
 
 `standalone/` exists because Astro's absolute `/_astro/...` paths break under
 `file://`. Double-click `standalone/index.html`; hard-refresh with Ctrl+F5 if
-you have opened it before.
+you have opened it before. It is generated, so re-run `bin/make-standalone.mjs`
+after any build rather than editing those files by hand.
 
 ## Source of the CSS
 

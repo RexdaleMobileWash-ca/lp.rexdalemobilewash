@@ -7,9 +7,10 @@ const LOGO =
 <header class="hdr">
   <!-- #28402046 : row, align center, bg #FFFFFF, content-width 1400px -->
   <div class="hdr__inner">
-    <!-- #4b38bd4e : width 75% (50% <=767), padding 10px -->
+    <!-- #4b38bd4e : width 75% (50% <=767), padding 10px (reduced to 6px) -->
     <div class="hdr__brand">
-      <!-- #15be2f65 : text-align start, img width 18% / 16% <=1024 / 38% <=767 -->
+      <!-- #15be2f65 : text-align start. Original img width 18% / 16% <=1024 /
+           38% <=767; reduced here to shrink the logo and the header band. -->
       <a href="https://www.rexdalemobilewash.ca/">
         <img src={LOGO} alt="Rexdale Mobile Wash - Logo" width="200" height="200" />
       </a>
@@ -46,14 +47,19 @@ const LOGO =
 
   .hdr__brand {
     width: 75%;
-    padding: 10px;
+    padding: 6px 10px;
     text-align: start;
   }
 
-  /* img width is a percentage of its container on the original, not a fixed px */
+  /* img width is a percentage of its container on the original, not a fixed px.
+     The cap keeps the logo — and so the header band — from growing unbounded
+     on wide viewports. */
   .hdr__brand img {
-    width: 18%;
+    width: 13%;
     min-width: 56px;
+    max-width: 130px;
+    height: auto;
+    display: block;
   }
 
   .hdr__cta {
@@ -85,7 +91,7 @@ const LOGO =
 
   @media (max-width: 1024px) {
     .hdr__brand img {
-      width: 16%;
+      width: 12%;
     }
   }
 
@@ -95,7 +101,7 @@ const LOGO =
       width: 50%;
     }
     .hdr__brand img {
-      width: 38%;
+      width: 32%;
     }
   }
 </style>
