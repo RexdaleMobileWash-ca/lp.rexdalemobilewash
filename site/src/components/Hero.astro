@@ -1,0 +1,202 @@
+---
+/**
+ * Ported from post-110.css — #18016ff0 and children.
+ *
+ * The original is an Elementor Pro background slideshow. Its data-settings
+ * gallery lists the five banners as http:// URLs on an https:// page, so the
+ * browser blocks them as mixed content and the slideshow never initialises —
+ * the live hero renders flat grey. Served here over https, which is what the
+ * design intends.
+ */
+import EstimateForm from './EstimateForm.astro';
+
+const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
+
+/* background_slideshow_gallery order, ids 118-122 */
+const slides = [
+  `${BASE}/Rexdale-Mobile-Wash-Banner-5.webp`,
+  `${BASE}/Rexdale-Mobile-Wash-Banner-4.webp`,
+  `${BASE}/Rexdale-Mobile-Wash-Banner-3.webp`,
+  `${BASE}/Rexdale-Mobile-Wash-Banner-2.webp`,
+  `${BASE}/Rexdale-Mobile-Wash-Banner-1.webp`,
+];
+---
+
+<!-- #18016ff0 : min-height 90vh (70vh <=1024), row, align center,
+     padding 50px, overlay #000000 at 0.5, content-width 80vw -->
+<section class="hero" id="top">
+  <div class="hero__slides" aria-hidden="true">
+    {
+      slides.map((src, i) => (
+        <div
+          class="hero__slide"
+          style={`background-image:url('${src}');animation-delay:${i * 5}s`}
+        />
+      ))
+    }
+  </div>
+  <div class="hero__overlay" aria-hidden="true"></div>
+
+  <div class="hero__inner">
+    <!-- #dae89b8 : width 70% (100% <=1024) -->
+    <div class="hero__copy">
+      <!-- #25ea1eb7 : SSP 2.8vw/700, lh 1.3em, shadow 2px 2px 10px #000, #D4E4ED -->
+      <h1>Fast &amp; Reliable Bulk Water Delivery &amp; Mobile Wash Services</h1>
+      <!-- #74b088b4 : Montserrat 1.2vw/500, shadow 2px 2px 10px #000, #FFFFFF -->
+      <p class="hero__sub">
+        Bulk Water Delivery | Professional Graffiti Removal | Storefront Pressure
+        Washing
+      </p>
+    </div>
+
+    <!-- #668ab6f1 : width 35% (50% <=1024), bg #164E83, radius 10px,
+         shadow 0 0 10px rgba(0,0,0,.5), padding 25px -->
+    <div class="hero__panel" id="inquiry">
+      <!-- #185fd2ab : SSP 25px/600, lh 1.1em, #FFFFFF, centred -->
+      <h2 class="hero__panel-title">Get a Free Estimate</h2>
+      <EstimateForm variant="hero" id="hero" />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    isolation: isolate;
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    padding: 50px;
+    background-color: #6f6f6f;
+    overflow: hidden;
+  }
+
+  .hero__slides,
+  .hero__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+
+  .hero__slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    animation: heroFade 25s infinite;
+  }
+
+  /* --overlay-opacity:0.5 over background-color #000000 */
+  .hero__overlay {
+    background-color: #000;
+    opacity: 0.5;
+  }
+
+  @keyframes heroFade {
+    0% { opacity: 0; }
+    4% { opacity: 1; }
+    20% { opacity: 1; }
+    24% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  .hero__inner {
+    width: 80vw;
+    max-width: var(--wrap-max);
+    margin-inline: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .hero__copy {
+    width: 70%;
+  }
+
+  .hero__copy h1 {
+    font-family: var(--f-head);
+    font-size: 2.8vw;
+    font-weight: 700;
+    line-height: 1.3em;
+    color: var(--c-blue-pale);
+    text-shadow: 2px 2px 10px #000;
+    margin: 0 0 0.4em;
+  }
+
+  .hero__sub {
+    font-family: var(--f-body);
+    font-size: 1.2vw;
+    font-weight: 500;
+    color: #fff;
+    text-shadow: 2px 2px 10px #000;
+    margin: 0;
+  }
+
+  .hero__panel {
+    width: 35%;
+    background-color: var(--c-blue);
+    border-radius: 10px;
+    box-shadow: 0 0 10px 0 rgb(0 0 0 / 50%);
+    padding: 25px;
+  }
+
+  .hero__panel-title {
+    font-family: var(--f-head);
+    font-size: 25px;
+    font-weight: 600;
+    line-height: 1.1em;
+    color: #fff;
+    text-align: center;
+    margin: 0 0 15px;
+  }
+
+  @media (max-width: 1024px) {
+    .hero {
+      min-height: 70vh;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 50px 10px;
+    }
+    .hero__inner {
+      width: 100vw;
+      justify-content: center;
+      gap: 24px;
+    }
+    .hero__copy {
+      width: 100%;
+      text-align: center;
+    }
+    .hero__copy h1 {
+      font-size: 6.5vw;
+    }
+    .hero__sub {
+      font-size: 2.2vw;
+    }
+    .hero__panel {
+      width: 50%;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .hero {
+      padding: 30px 10px 50px;
+    }
+    .hero__copy h1 {
+      font-size: 7vw;
+    }
+    .hero__sub {
+      font-size: 3.8vw;
+      line-height: 1.3em;
+    }
+    .hero__panel {
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__slide { animation: none; opacity: 0; }
+    .hero__slide:first-child { opacity: 1; }
+  }
+</style>

@@ -1,0 +1,63 @@
+---
+/**
+ * Ported from post-18.css — .elementor-18 (theme-builder footer).
+ *
+ * This is the whole footer: a blue bar with two centred 14px lines. The
+ * contact details, socials and "Areas We Serve" belong to the page's closing
+ * CTA section (#43011b9f), not here.
+ *
+ * #3e58dfb  : column, gap 10px, padding 15px, bg #164E83, content-width 1400px
+ * #10031846 : SSP 14px/400 #FCFDFC, centred  (privacy link)
+ * #206dcb89 : SSP 14px/400 #FFFFFF, centred  (copyright)
+ */
+const year = new Date().getFullYear();
+---
+
+<footer class="ftr">
+  <div class="ftr__inner">
+    <p class="ftr__privacy">
+      <a href="/privacy-policy">Privacy Policy</a>
+    </p>
+    <p class="ftr__copy">
+      Copyright {year} Rexdale Mobile Wash | All Rights Reserved
+    </p>
+  </div>
+</footer>
+
+<style>
+  .ftr {
+    background-color: var(--c-blue);
+    padding: 15px;
+  }
+
+  .ftr__inner {
+    width: 100%;
+    max-width: 1400px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+  }
+
+  .ftr__privacy,
+  .ftr__copy {
+    font-family: var(--f-head);
+    font-size: 14px;
+    font-weight: 400;
+    text-align: center;
+    margin: 0;
+  }
+
+  .ftr__privacy a {
+    color: var(--c-offwhite);
+    text-decoration: none;
+  }
+
+  .ftr__privacy a:hover {
+    text-decoration: underline;
+  }
+
+  .ftr__copy {
+    color: #fff;
+  }
+</style>

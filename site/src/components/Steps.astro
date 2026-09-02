@@ -1,0 +1,129 @@
+---
+/**
+ * Ported from post-110.css — #1c6b9f7f wrapper, #77e9eca4 row,
+ * icon boxes #7e2c743e / #1829e18c / #182c97aa (identical styling).
+ */
+const steps = [
+  {
+    title: 'Request a Quote',
+    body: 'Fill out our quick online form or call us directly to get a personalized quote for your service needs.',
+    path: 'M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.6 3.4 6-.2 1.4-.9 2.7-1.9 3.7 1.9-.2 3.7-.9 5.2-2 1 .2 2.1.3 3.3.3 5.5 0 10-3.6 10-8s-4.5-8-10-8Zm-4 9a1.3 1.3 0 1 1 0-2.6A1.3 1.3 0 0 1 8 12Zm4 0a1.3 1.3 0 1 1 0-2.6A1.3 1.3 0 0 1 12 12Zm4 0a1.3 1.3 0 1 1 0-2.6A1.3 1.3 0 0 1 16 12Z',
+  },
+  {
+    title: 'Schedule Your Service',
+    body: 'Choose a convenient date and time for our team to arrive and complete the job efficiently.',
+    path: 'M7 2v2H5.5A2.5 2.5 0 0 0 3 6.5v13A2.5 2.5 0 0 0 5.5 22h13a2.5 2.5 0 0 0 2.5-2.5v-13A2.5 2.5 0 0 0 18.5 4H17V2h-2v2H9V2H7Zm12 8v9.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V10h14Zm-11 2H6v2h2v-2Zm5 0h-2v2h2v-2Zm5 0h-2v2h2v-2Z',
+  },
+  {
+    title: 'Get Exceptional Results',
+    body: 'Our professionals handle everything, leaving your property spotless and refreshed.',
+    path: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.2 14.4-4-4 1.7-1.7 2.3 2.3 5.1-5.1 1.7 1.7-6.8 6.8Z',
+  },
+];
+---
+
+<!-- #1c6b9f7f : border-bottom 2px solid #9DB6C9, padding 10px, content-width 80vw -->
+<section class="steps">
+  <div class="steps__inner">
+    {
+      steps.map((s) => (
+        <article class="step">
+          {/* .elementor-icon font-size 65px (50px <=1024), colour #164E83 */}
+          <span class="step__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d={s.path} />
+            </svg>
+          </span>
+          {/* .elementor-icon-box-title SSP 22px/600 #376898 (20px <=767) */}
+          <h3 class="step__title">{s.title}</h3>
+          {/* description Montserrat 16px/400 #000 */}
+          <p class="step__body">{s.body}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .steps {
+    border-bottom: 2px solid var(--c-blue-grey);
+    padding: 10px;
+  }
+
+  .steps__inner {
+    width: 100%;
+    max-width: var(--wrap-max);
+    margin-inline: auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 40px 0;
+  }
+
+  .step {
+    flex: 1 1 240px;
+    padding: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .step__icon {
+    color: var(--c-blue);
+    display: inline-flex;
+  }
+
+  .step__icon svg {
+    width: 65px;
+    height: 65px;
+  }
+
+  .step__title {
+    font-family: var(--f-head);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--c-blue-mid);
+    margin: 0 0 5px;
+  }
+
+  .step__body {
+    font-family: var(--f-body);
+    font-size: 16px;
+    font-weight: 400;
+    color: #000;
+    margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    .steps {
+      --content-width: 80vw;
+    }
+    .steps__inner {
+      width: 80vw;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .steps__inner {
+      width: 100vw;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .step {
+      gap: 0;
+    }
+    .step__icon svg {
+      width: 50px;
+      height: 50px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .step__title {
+      font-size: 20px;
+    }
+  }
+</style>

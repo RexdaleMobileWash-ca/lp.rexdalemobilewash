@@ -1,0 +1,185 @@
+---
+/**
+ * Ported from post-110.css.
+ * Two instances on the page with different button colours:
+ *   #66157053  hero panel   — submit bg #D4E4ED, text #164E83, hover bg #9DB6C9
+ *   #440944ae  closing CTA  — submit bg #164E83, text #FFFFFF, hover bg #376898
+ * Fields are identical in both: Montserrat 400, #000 text, white bg,
+ * 1px #D4E4ED border, 5px radius, 10px gutter, 10px bottom margin.
+ *
+ * The original posts to WordPress admin-ajax (Elementor Pro Forms), which does
+ * not exist in a static build. ENDPOINT is empty on purpose so a submission
+ * fails visibly rather than silently dropping a real enquiry.
+ */
+interface Props {
+  variant?: 'hero' | 'cta';
+  id?: string;
+}
+const { variant = 'hero', id = 'estimate' } = Astro.props;
+const ENDPOINT = '';
+---
+
+<form
+  class={`ef ef--${variant}`}
+  method="POST"
+  action={ENDPOINT || undefined}
+  data-live={ENDPOINT ? 'true' : 'false'}
+>
+  <div class="ef__row">
+    <label class="visually-hidden" for={`${id}-name`}>Name</label>
+    <input id={`${id}-name`} name="name" type="text" placeholder="Name*" required />
+  </div>
+
+  <div class="ef__row">
+    <label class="visually-hidden" for={`${id}-email`}>Email</label>
+    <input id={`${id}-email`} name="email" type="email" placeholder="Email*" required />
+  </div>
+
+  <div class="ef__row ef__row--split">
+    <div>
+      <label class="visually-hidden" for={`${id}-phone`}>Phone</label>
+      <input id={`${id}-phone`} name="phone" type="tel" placeholder="Phone*" required />
+    </div>
+    <div>
+      <label class="visually-hidden" for={`${id}-city`}>City</label>
+      <input id={`${id}-city`} name="city" type="text" placeholder="City" />
+    </div>
+  </div>
+
+  <div class="ef__row">
+    <label class="visually-hidden" for={`${id}-message`}>Message</label>
+    <textarea id={`${id}-message`} name="message" rows="3" placeholder="Message"></textarea>
+  </div>
+
+  <div class="ef__row">
+    <button type="submit">Submit</button>
+  </div>
+
+  <p class="ef__notice" hidden>
+    This form is not connected yet — please call
+    <a href="tel:4162446497">(416) 244-6497</a>.
+  </p>
+</form>
+
+<script>
+  document.querySelectorAll('.ef').forEach((form) => {
+    if (form.getAttribute('data-live') === 'true') return;
+    const notice = form.querySelector('.ef__notice');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (notice) notice.hidden = false;
+    });
+  });
+</script>
+
+<style>
+  .ef {
+    display: flex;
+    flex-direction: column;
+    /* .elementor-form-fields-wrapper margin-bottom:-10px */
+    margin-bottom: -10px;
+  }
+
+  /* .elementor-field-group : margin-bottom 10px, 10px/2 side padding */
+  .ef__row {
+    margin-bottom: 10px;
+  }
+
+  .ef__row--split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    font-family: var(--f-body);
+    font-weight: 400;
+    font-size: 15px;
+    color: #000;
+    background-color: #fff;
+    border: 1px solid var(--c-blue-pale);
+    border-radius: 5px;
+    padding: 12px 14px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #8a8a8a;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--c-blue-mid);
+    outline-offset: 1px;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 76px;
+  }
+
+  /* .elementor-button : Source Sans Pro 18px 500 uppercase */
+  button[type='submit'] {
+    width: 100%;
+    font-family: var(--f-head);
+    font-size: 18px;
+    font-weight: 500;
+    text-transform: uppercase;
+    border: 0;
+    border-radius: 3px;
+    padding: 13px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  /* #66157053 */
+  .ef--hero button[type='submit'] {
+    background-color: var(--c-blue-pale);
+    color: var(--c-blue);
+  }
+
+  .ef--hero button[type='submit']:hover {
+    background-color: var(--c-blue-grey);
+    color: var(--c-blue);
+  }
+
+  /* #440944ae */
+  .ef--cta button[type='submit'] {
+    background-color: var(--c-blue);
+    color: #fff;
+  }
+
+  .ef--cta button[type='submit']:hover {
+    background-color: var(--c-blue-mid);
+    color: #fff;
+  }
+
+  .ef__notice {
+    margin: 4px 0 0;
+    font-size: 14px;
+    padding: 8px 10px;
+    border-radius: 3px;
+  }
+
+  .ef--hero .ef__notice {
+    color: #fff;
+    background: rgb(0 0 0 / 25%);
+  }
+
+  .ef--hero .ef__notice a {
+    color: var(--c-blue-pale);
+  }
+
+  .ef--cta .ef__notice {
+    color: #b3261e;
+    background: #fdecea;
+  }
+
+  @media (max-width: 480px) {
+    .ef__row--split {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

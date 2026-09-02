@@ -1,0 +1,266 @@
+---
+/**
+ * Ported from post-110.css — #65980114 section and the contact panel #43011b9f.
+ *
+ * Note the contact details, socials and "Areas We Serve" are NOT part of the
+ * theme footer. They are a blue rounded panel inside this page section. The
+ * theme footer (post-18.css) is only the privacy link + copyright bar.
+ */
+import EstimateForm from './EstimateForm.astro';
+
+const areas = [
+  'Toronto',
+  'Brampton',
+  'Mississauga',
+  'Vaughan',
+  'Etobicoke',
+  'North York',
+  'and more!',
+];
+---
+
+<!-- #65980114 : bg #D4E4ED, column, padding 100px, content-width 80vw -->
+<section class="cta" id="quote">
+  <div class="cta__inner">
+    <!-- #6e0980b4 : centred, 40px, #164E83 -->
+    <h2 class="h-sec cta__title">Your Solution for Cleaner Spaces Starts Here</h2>
+
+    <!-- #26061421 : Montserrat 20px/500 #376898 centred -->
+    <h3 class="cta__sub">Request Your Free, No-Obligation Quote Now!</h3>
+
+    <!-- #440944ae : width 40% (60% <=1024, 90% <=767), align-self center -->
+    <div class="cta__form">
+      <EstimateForm variant="cta" id="cta" />
+    </div>
+
+    <!-- #43011b9f : bg #164E83, radius 5px, margin-top 30px, padding 25px -->
+    <div class="cta__panel">
+      <!-- #3831df68 : icon #D4E4ED 20px, text SSP 20px/400 #FFF -->
+      <ul class="cta__contact">
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 2.2Z"/></svg>
+          <a href="tel:4162446497">(416) 244-6497</a>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5-8-5V6l8 5 8-5v2Z"/></svg>
+          <a href="mailto:dispatch@rexdalemobilewash.ca">dispatch@rexdalemobilewash.ca</a>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+          <a href="https://maps.app.goo.gl/bawp5JLxv2pj6ByW6" target="_blank" rel="noopener noreferrer">Get Directions</a>
+        </li>
+      </ul>
+
+      <!-- #17316804 : icon 18px, gap 15px, bg #D4E4ED, icon #164E83, hover #FFF -->
+      <ul class="cta__social">
+        <li>
+          <a href="https://www.instagram.com/rexdalemobilewash/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.3 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.3 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.3 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .3-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.3-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.3-1-.4-2.2-.1-1.3-.1-1.7-.1-4.9s0-3.6.1-4.9c.1-1.2.3-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.3 2.2-.4 1.3-.1 1.7-.1 4.9-.1Zm0 6.8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0-1.8a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 0 1 0-9.6Zm6.1-.3a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0Z"/></svg>
+          </a>
+        </li>
+        <li>
+          <a href="https://www.facebook.com/rexdalemobilewash" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.6c-.3 0-1.3-.1-2.4-.1-2.4 0-4.05 1.45-4.05 4.15V9.9H7.5V13h2.75v8h3.25Z"/></svg>
+          </a>
+        </li>
+        <li>
+          <a href="https://twitter.com/RexMobileWash" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 3h3l-6.6 7.5L21.8 21h-5.9l-4.6-6-5.3 6H3l7-8L2.6 3h6l4.2 5.5L17.5 3Zm-1 16h1.6L7.6 4.7H5.9L16.5 19Z"/></svg>
+          </a>
+        </li>
+      </ul>
+
+      <!-- #3370538 : margin-top 25px, SSP 25px/600 #D4E4ED, centred -->
+      <h3 class="cta__areas-title">Areas We Serve</h3>
+
+      <!-- #2484af25 : icon #D4E4ED, text SSP 20px/400 #FFF -->
+      <ul class="cta__areas">
+        {
+          areas.map((a) => (
+            <li>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z" />
+              </svg>
+              <span>{a}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta {
+    background-color: var(--c-blue-pale);
+    padding: 100px 10px;
+  }
+
+  .cta__inner {
+    width: 100%;
+    max-width: var(--wrap-max);
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cta__title {
+    text-align: center;
+  }
+
+  .cta__sub {
+    font-family: var(--f-body);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--c-blue-mid);
+    text-align: center;
+    margin: 0 0 24px;
+  }
+
+  .cta__form {
+    width: 90%;
+    align-self: center;
+  }
+
+  .cta__panel {
+    width: 100%;
+    background-color: var(--c-blue);
+    border-radius: 5px;
+    margin-top: 30px;
+    padding: 25px;
+  }
+
+  .cta__contact,
+  .cta__areas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cta__contact li,
+  .cta__areas li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding-block-end: 2.5px;
+    margin-block-start: 2.5px;
+  }
+
+  .cta__contact svg,
+  .cta__areas svg {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    fill: var(--c-blue-pale);
+  }
+
+  .cta__contact a,
+  .cta__contact li > span,
+  .cta__areas span {
+    font-family: var(--f-head);
+    font-size: 20px;
+    font-weight: 400;
+    color: #fff;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .cta__contact a:hover {
+    text-decoration: underline;
+  }
+
+  .cta__social {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    column-gap: 15px;
+  }
+
+  .cta__social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: var(--c-blue-pale);
+  }
+
+  .cta__social svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--c-blue);
+    transition: fill 0.3s;
+  }
+
+  .cta__social a:hover {
+    background-color: var(--c-blue-mid);
+  }
+
+  .cta__social a:hover svg {
+    fill: #fff;
+  }
+
+  .cta__areas-title {
+    font-family: var(--f-head);
+    font-size: 25px;
+    font-weight: 600;
+    color: var(--c-blue-pale);
+    text-align: center;
+    margin: 25px 0 10px;
+  }
+
+  @media (min-width: 768px) {
+    .cta__inner {
+      width: 80vw;
+    }
+    .cta__form {
+      width: 40%;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .cta__inner {
+      width: 100vw;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .cta {
+      padding: 50px 10px;
+    }
+    .cta__form {
+      width: 60%;
+    }
+    .cta__sub {
+      font-size: 18px;
+    }
+    .cta__contact a {
+      font-size: 18px;
+    }
+    .cta__areas span {
+      font-size: 18px;
+      line-height: 1.3em;
+    }
+    .cta__areas-title {
+      margin-top: 15px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .cta__form {
+      width: 90%;
+    }
+    .cta__sub {
+      font-size: 16px;
+      line-height: 1.3em;
+    }
+    .cta__panel {
+      padding: 15px;
+    }
+  }
+</style>

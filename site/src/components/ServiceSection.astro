@@ -1,0 +1,197 @@
+---
+/**
+ * The four alternating service blocks, ported from post-110.css.
+ *
+ * light tone (#1b75439 bulk water, #30aafbe storefront)
+ *   bg #FCFDFC, heading #164E83, body/list #000, button white/blue,
+ *   image frame shadow -8px -8px 0 10px #164E83
+ *
+ * dark tone (#d6ce5d3 graffiti, #0ed65bb de-icing)
+ *   bg #164E83, heading #D4E4ED, body/list #FFF, button blue/white,
+ *   image frame shadow 8px -8px 0 10px #DFEBFF
+ *
+ * Media column is 40%, copy column 60% at >=768px; 50/50 in the 768-1024
+ * band; stacked below that. On dark sections the copy column carries
+ * --order:-99999 so the text leads.
+ */
+interface Props {
+  id: string;
+  eid: string;
+  title: string;
+  image: string;
+  alt: string;
+  tone: 'light' | 'dark';
+  mediaFirst?: boolean;
+  body: string;
+  bullets: string[];
+  note?: string;
+}
+const {
+  id,
+  eid,
+  title,
+  image,
+  alt,
+  tone,
+  mediaFirst = true,
+  body,
+  bullets,
+  note,
+} = Astro.props;
+---
+
+<section class={`svc svc--${tone}`} id={id} data-eid={eid}>
+  <div class="svc__inner">
+    <div class={`svc__media ${mediaFirst ? '' : 'svc__media--last'}`}>
+      <img src={image} alt={alt} loading="lazy" decoding="async" />
+    </div>
+
+    <div class="svc__copy">
+      <h2 class={`h-sec ${tone === 'dark' ? 'on-blue' : ''}`}>{title}</h2>
+      <p class="svc__body">{body}</p>
+
+      <ul class="ticks">
+        {
+          bullets.map((b) => (
+            <li>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z" />
+              </svg>
+              <span>{b}</span>
+            </li>
+          ))
+        }
+      </ul>
+
+      {note && <p class="svc__note">{note}</p>}
+
+      <a href="#inquiry" class={`btn ${tone === 'dark' ? 'btn-dark' : 'btn-light'}`}>
+        Request Quote
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .svc {
+    padding: 100px 10px;
+  }
+
+  .svc--light {
+    background-color: var(--c-offwhite);
+  }
+
+  .svc--dark {
+    background-color: var(--c-blue);
+  }
+
+  .svc__inner {
+    width: 100%;
+    max-width: var(--wrap-max);
+    margin-inline: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .svc__media {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .svc__copy {
+    width: 100%;
+    padding: 10px;
+  }
+
+  /* img width:90% plus the offset frame shadow */
+  .svc__media img {
+    width: 90%;
+  }
+
+  .svc--light .svc__media img {
+    box-shadow: -8px -8px 0 10px var(--c-blue);
+  }
+
+  .svc--dark .svc__media img {
+    box-shadow: 8px -8px 0 10px var(--c-frame-pale);
+  }
+
+  .svc__body {
+    font-family: var(--f-body);
+    font-size: 16px;
+    font-weight: 400;
+    margin: 0 0 1em;
+  }
+
+  .svc__note {
+    font-style: italic;
+    font-weight: 700;
+    margin: 0 0 1.25em;
+  }
+
+  .svc--light .svc__body,
+  .svc--light .ticks {
+    color: #000;
+  }
+
+  .svc--light .ticks svg {
+    fill: var(--c-blue);
+  }
+
+  .svc--dark .svc__body,
+  .svc--dark .ticks,
+  .svc--dark .svc__note {
+    color: #fff;
+  }
+
+  .svc--dark .ticks svg {
+    fill: var(--c-blue-pale);
+  }
+
+  @media (min-width: 768px) {
+    .svc__inner {
+      width: 80vw;
+    }
+    .svc__media {
+      width: 40%;
+    }
+    .svc__copy {
+      width: 60%;
+    }
+    .svc__media--last {
+      order: 2;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .svc__inner {
+      width: 100vw;
+    }
+    .svc__media,
+    .svc__copy {
+      width: 50%;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .svc__media {
+      z-index: 0;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .svc {
+      padding: 50px 10px;
+    }
+    .svc__body,
+    .svc__note {
+      text-align: center;
+    }
+    /* --order:-99999 on the copy column at mobile */
+    .svc__copy {
+      order: -1;
+    }
+  }
+</style>

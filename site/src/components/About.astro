@@ -1,0 +1,111 @@
+---
+/**
+ * Ported from post-110.css — #211548f2.
+ *
+ * This section has a background IMAGE (Banner-4.webp) under a #164E83 overlay
+ * at 0.85 opacity, plus background-attachment:fixed above 1025px. It is not a
+ * flat blue band.
+ */
+const BG =
+  'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Banner-4.webp';
+---
+
+<section class="about" id="about" style={`--about-bg:url('${BG}')`}>
+  <div class="about__overlay" aria-hidden="true"></div>
+
+  <div class="about__inner">
+    <!-- #1c638bc3 : centred, 40px, #D4E4ED -->
+    <h2 class="h-sec on-blue about__title">About Us</h2>
+
+    <!-- #63c298da : Montserrat 16px/400, #FFFFFF, centred -->
+    <p class="about__body">
+      At Rexdale Mobile Wash, we are dedicated to providing professional mobile
+      cleaning solutions across Etobicoke and the Greater Toronto Area. With
+      nearly 60 years of experience, we take pride in delivering exceptional
+      service, using advanced equipment and eco-friendly practices to meet the
+      needs of businesses and property owners. Our mission is to help clients
+      maintain clean, presentable, and functional spaces with reliable,
+      high-quality service. Whether you need graffiti removal to enhance your
+      property&rsquo;s look, or storefront pressure washing to improve curb
+      appeal, we are your trusted experts. Customer satisfaction is at the heart
+      of everything we do, and we are committed to exceeding expectations with
+      every job.
+    </p>
+
+    <!-- #7835b9dc : blue bg, 2px white border -->
+    <p class="about__cta">
+      <a href="#inquiry" class="btn btn-dark">Get in Touch</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  .about {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--c-blue);
+    background-image: var(--about-bg);
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    padding: 100px 10px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* --overlay-opacity:0.85 over background-color #164E83 */
+  .about__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--c-blue);
+    opacity: 0.85;
+  }
+
+  .about__inner {
+    width: 100%;
+    max-width: var(--wrap-max);
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .about__title {
+    text-align: center;
+  }
+
+  .about__body {
+    font-family: var(--f-body);
+    font-size: 16px;
+    font-weight: 400;
+    color: #fff;
+    margin: 0 0 1.5em;
+  }
+
+  .about__cta {
+    margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    .about__inner {
+      width: 80vw;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .about__inner {
+      width: 100vw;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .about {
+      background-attachment: fixed;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .about {
+      padding: 50px 10px;
+    }
+  }
+</style>

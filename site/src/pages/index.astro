@@ -1,0 +1,98 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import Steps from '../components/Steps.astro';
+import ServiceSection from '../components/ServiceSection.astro';
+import WhyUs from '../components/WhyUs.astro';
+import About from '../components/About.astro';
+import Faq from '../components/Faq.astro';
+import Clients from '../components/Clients.astro';
+import ClosingCta from '../components/ClosingCta.astro';
+import Footer from '../components/Footer.astro';
+
+const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
+---
+
+<Base>
+  <Header />
+
+  <main>
+    <Hero />
+    <Steps />
+
+    <ServiceSection
+      id="bulk-water"
+      eid="1b75439"
+      title="Bulk Water Delivery"
+      image={`${BASE}/Bulk-Water-Services-Rexdale-Mobile-Wash.webp`}
+      alt="Bulk Water Services - Rexdale Mobile Wash"
+      tone="light"
+      mediaFirst={true}
+      body="Keep your projects running smoothly with fast and dependable bulk water services. Whether you need a one-time fill-up or ongoing water support, we’re equipped to handle it with precision and care."
+      bullets={[
+        'Bulk water supply for construction and landscaping',
+        'Fast delivery for dust control, flushing, and sod watering jobs',
+        'Fast and dependable deliveries',
+        'Flexible scheduling to match your project timeline',
+      ]}
+      note="Flexible scheduling. Fast response. Large-capacity water tankers ready to go."
+    />
+
+    <ServiceSection
+      id="graffiti"
+      eid="d6ce5d3"
+      title="Expert Graffiti Removal"
+      image={`${BASE}/Graffiti-Removal.webp`}
+      alt="Expert graffiti removal by Rexdale Mobile Wash"
+      tone="dark"
+      mediaFirst={false}
+      body="Unwanted graffiti can negatively impact your business’s appearance and reputation. Our professional graffiti removal service restores surfaces to their original condition using safe, effective, and environmentally friendly methods."
+      bullets={[
+        'Powerful removal techniques that eliminate all types of graffiti',
+        'Surface-safe cleaning solutions to prevent damage',
+        '24/7 emergency service',
+      ]}
+    />
+
+    <ServiceSection
+      id="storefront"
+      eid="30aafbe"
+      title="Storefront Pressure Washing"
+      image={`${BASE}/Storefront-Pressure-Washing.webp`}
+      alt="Storefront pressure washing by Rexdale Mobile Wash"
+      tone="light"
+      mediaFirst={true}
+      body="Keep your business looking its best with our storefront pressure washing service. We remove dirt, grime, and buildup to restore the professional look of your storefront and exterior spaces."
+      bullets={[
+        'High-pressure cleaning for sidewalks, signage, and building exteriors',
+        'Removes stains, dirt, gum, and mildew for a refreshed look',
+        'Ideal for businesses looking to enhance curb appeal and attract more customers',
+      ]}
+    />
+
+    <ServiceSection
+      id="de-icing"
+      eid="0ed65bb"
+      title="Premium De-Icing Services"
+      image={`${BASE}/De-Icing-Photo.jpg`}
+      alt="De-Icing Services Rexdale Mobile Wash"
+      tone="dark"
+      mediaFirst={true}
+      body="Ensure your property remains safe and fully operational throughout the freezing winter months. Our proactive ice management prevents dangerous buildup, protecting your visitors and your bottom line from winter hazards."
+      bullets={[
+        'Minimize slip-and-fall risks for pedestrians and vehicles.',
+        'Immediate treatment as temperatures drop to prevent ice bonding.',
+        'Professional-grade products that reduce damage to concrete and asphalt.',
+      ]}
+    />
+
+    <WhyUs />
+    <About />
+    <Faq />
+    <Clients />
+    <ClosingCta />
+  </main>
+
+  <Footer />
+</Base>

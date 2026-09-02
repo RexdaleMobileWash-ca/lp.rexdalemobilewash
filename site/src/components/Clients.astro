@@ -1,0 +1,113 @@
+---
+/**
+ * Ported from post-110.css — #2728f38 section, gallery #8742f98.
+ *
+ * The original renders these as an Elementor e-gallery: CSS background-images
+ * injected by JavaScript, invisible to crawlers and screen readers. Rebuilt as
+ * real <img> elements with alt text.
+ */
+const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
+
+const logos = [
+  { src: `${BASE}/UPS-Logo.webp`, alt: 'UPS' },
+  { src: `${BASE}/Pepsico-Logo.webp`, alt: 'PepsiCo' },
+  { src: `${BASE}/Loblaws-Logo.webp`, alt: 'Loblaws' },
+  { src: `${BASE}/Pizza-Pizza-Logo.webp`, alt: 'Pizza Pizza' },
+  { src: `${BASE}/Sofina-Logo.webp`, alt: 'Sofina Foods' },
+  { src: `${BASE}/Car-Wraps-CA-Logo.webp`, alt: 'Car Wraps CA' },
+  { src: `${BASE}/Toronto-Trucking-Association-Logo.webp`, alt: 'Toronto Trucking Association' },
+  { src: `${BASE}/Toronto-Transportation-Club-Logo.webp`, alt: 'Toronto Transportation Club' },
+  { src: `${BASE}/ISN-Logo.webp`, alt: 'ISN' },
+];
+---
+
+<section class="sec clients" id="clients">
+  <div class="inner">
+    <!-- #fa7a65e : centred, 40px, #164E83 -->
+    <h2 class="h-sec clients__title">Our Clients &amp; Associations</h2>
+
+    <!-- #1e459a8 : Montserrat 20px/500 #000 centred (18px <=1024, 16px <=767) -->
+    <h3 class="clients__sub">
+      These are a few of our customers we proudly service. We look forward to
+      working with you!
+    </h3>
+
+    <!-- #8742f98 : margin-top 30px, content padding 20px, centred -->
+    <ul class="clients__grid">
+      {
+        logos.map((l) => (
+          <li>
+            <img src={l.src} alt={l.alt} loading="lazy" decoding="async" />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .clients {
+    background-color: #fff;
+  }
+
+  .clients__title {
+    text-align: center;
+  }
+
+  .clients__sub {
+    font-family: var(--f-body);
+    font-size: 20px;
+    font-weight: 500;
+    color: #000;
+    text-align: center;
+    margin: 0 auto;
+    max-width: 720px;
+  }
+
+  .clients__grid {
+    list-style: none;
+    margin: 30px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    align-items: center;
+  }
+
+  .clients__grid li {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .clients__grid img {
+    max-height: 80px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  @media (min-width: 700px) {
+    .clients__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 1000px) {
+    .clients__grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .clients__sub {
+      font-size: 18px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .clients__sub {
+      font-size: 16px;
+      line-height: 1.3em;
+    }
+  }
+</style>

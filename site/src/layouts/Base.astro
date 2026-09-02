@@ -1,0 +1,282 @@
+---
+/**
+ * Globals live here (briansmasonry convention — no src/styles).
+ * Every value below is ported from the live Elementor stylesheets:
+ *   post-6.css   global kit  (.elementor-kit-6)
+ *   post-23.css  header      (.elementor-23)
+ *   post-18.css  footer      (.elementor-18)
+ *   post-110.css page        (.elementor-110)
+ * Elementor element ids are kept in comments beside each ported block.
+ */
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+}
+
+const TITLE = 'Fast & Affordable Mobile Wash Services in Toronto';
+const DESC =
+  'Rexdale Mobile Wash provides top-rated graffiti removal & storefront cleaning in Toronto. Request a quote.';
+const SHARE =
+  'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Share-Image.jpg';
+
+const {
+  title = TITLE,
+  description = DESC,
+  canonical = 'https://lp.rexdalemobilewash.ca' + Astro.url.pathname,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link
+      rel="icon"
+      href="https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon.png"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={SHARE} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={SHARE} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Measured with document.fonts on the live site: Source Sans Pro 400/600/700,
+      Montserrat 400/500/700 and Roboto 400 actually load. "Roboto Slab" is
+      declared in the kit as --e-global-typography-secondary but never loads and
+      is never applied to a visible element, so it is deliberately not requested.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Source+Sans+3:wght@400;500;600;700&display=swap"
+    />
+  </head>
+
+  <body>
+    <slot />
+
+    <style is:global>
+      /* ---- kit palette — post-6.css .elementor-kit-6 ---- */
+      :root {
+        --c-primary: #6ec1e4; /* --e-global-color-primary   (unused on page) */
+        --c-secondary: #54595f; /* --e-global-color-secondary (unused on page) */
+        --c-text: #7a7a7a; /* --e-global-color-text */
+        --c-accent: #61ce70; /* --e-global-color-accent   (overridden everywhere) */
+        --c-blue: #164e83; /* --e-global-color-c8ead36 */
+        --c-blue-mid: #376898; /* --e-global-color-9732338 */
+        --c-blue-pale: #d4e4ed; /* --e-global-color-4376da3 */
+        --c-blue-grey: #9db6c9; /* --e-global-color-d496520 */
+        --c-offwhite: #fcfdfc; /* --e-global-color-b266324 */
+        --c-frame-pale: #dfebff; /* literal, used only in image frame shadows */
+
+        --f-head: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+        --f-body: 'Montserrat', sans-serif;
+
+        /* .e-con{--container-max-width:1140px} from the kit; sections then
+           override to 80vw at >=768px, 100vw at 768-1024px */
+        --wrap-max: 1140px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: #fff;
+        color: #000;
+        font-family: var(--f-body);
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family: var(--f-head);
+        margin: 0;
+      }
+
+      p {
+        margin: 0 0 1em;
+      }
+
+      /* Section shell. --content-width:80vw at >=768px per post-110.css,
+         100vw in the 768-1024 band. */
+      .sec {
+        --content-width: 100%;
+        padding: 100px 10px;
+      }
+
+      .sec > .inner {
+        width: var(--content-width);
+        max-width: var(--wrap-max);
+        margin-inline: auto;
+      }
+
+      @media (min-width: 768px) {
+        .sec {
+          --content-width: 80vw;
+        }
+      }
+
+      @media (min-width: 768px) and (max-width: 1024px) {
+        .sec {
+          --content-width: 100vw;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .sec {
+          padding: 50px 10px;
+        }
+      }
+
+      /* ---- buttons ----
+         Two variants only, both Source Sans Pro 500 with a 2px border.
+         .btn-light  #e07ab8d / #9765395 : white bg, blue text+border
+         .btn-dark   #e4544cf / #f3d4e28 / #7835b9dc : blue bg, white text+border */
+      .btn {
+        display: inline-block;
+        font-family: var(--f-head);
+        font-weight: 500;
+        line-height: 1;
+        padding: 12px 24px;
+        border-style: solid;
+        border-width: 2px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+      }
+
+      .btn-light {
+        background-color: #fff;
+        color: var(--c-blue);
+        border-color: var(--c-blue);
+      }
+
+      .btn-light:hover,
+      .btn-light:focus {
+        background-color: var(--c-blue);
+        color: #fff;
+      }
+
+      .btn-dark {
+        background-color: var(--c-blue);
+        color: #fff;
+        border-color: #fff;
+      }
+
+      .btn-dark:hover,
+      .btn-dark:focus {
+        background-color: #fff;
+        color: var(--c-blue);
+      }
+
+      /* ---- section heading — 40px / 30px <=1024 / 25px <=767 ----
+         #8bfb878 #42c1401 #b26c734 #375999f #1c94902 #1c638bc3 #1512754e
+         #fa7a65e #6e0980b4 all share these exact values. */
+      .h-sec {
+        font-family: var(--f-head);
+        font-size: 40px;
+        font-weight: 600;
+        color: var(--c-blue);
+        margin: 0 0 0.4em;
+      }
+
+      .h-sec.on-blue {
+        color: var(--c-blue-pale);
+      }
+
+      @media (max-width: 1024px) {
+        .h-sec {
+          font-size: 30px;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .h-sec {
+          font-size: 25px;
+          line-height: 1.3em;
+          text-align: center;
+        }
+      }
+
+      /* ---- icon list — #d3631c4 #564287b #ebd3671 #f3d81f0 ----
+         20px icon, 5px item spacing, Montserrat 400 */
+      .ticks {
+        list-style: none;
+        margin: 0 0 1.25em;
+        padding: 0;
+        font-family: var(--f-body);
+        font-weight: 400;
+      }
+
+      .ticks li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding-block-end: 2.5px;
+        margin-block-start: 2.5px;
+      }
+
+      .ticks svg {
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+        margin-top: 2px;
+        transition: fill 0.3s;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </body>
+</html>

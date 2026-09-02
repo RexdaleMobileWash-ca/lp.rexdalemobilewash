@@ -1,0 +1,96 @@
+---
+/**
+ * FLAG BEFORE GO-LIVE: the live page is stock WordPress boilerplate. It
+ * describes comments, user registration, Gravatar, password resets and login
+ * cookies — none of which exist on a static Astro landing page whose only data
+ * collection is one contact form. The headings and structure are carried over
+ * so the URL keeps working; the body text needs rewriting by whoever owns the
+ * client's privacy position before this is published.
+ */
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const sections = [
+  'Who we are',
+  'Comments',
+  'Media',
+  'Cookies',
+  'Embedded content from other websites',
+  'Who we share your data with',
+  'How long we retain your data',
+  'What rights you have over your data',
+  'Where your data is sent',
+];
+---
+
+<Base
+  title="Privacy Policy - Rexdale Mobile Wash"
+  description="Privacy policy for lp.rexdalemobilewash.ca."
+>
+  <Header />
+
+  <main class="sec prose">
+    <div class="inner">
+      <h1 class="h-sec">Privacy Policy</h1>
+
+      <p class="prose__todo">
+        <strong>Placeholder.</strong> The WordPress original carried the default
+        boilerplate, which does not describe how this site actually handles data.
+        Replace each section below with the client&rsquo;s real policy before
+        publishing.
+      </p>
+
+      {
+        sections.map((h) => (
+          <section class="prose__section">
+            <h2>{h}</h2>
+            <p>Content to be supplied.</p>
+          </section>
+        ))
+      }
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this policy can go to
+        <a href="mailto:dispatch@rexdalemobilewash.ca">
+          dispatch@rexdalemobilewash.ca</a
+        >
+        or (416) 244-6497.
+      </p>
+    </div>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .prose {
+    background-color: #fff;
+  }
+
+  .prose .inner {
+    max-width: 780px;
+  }
+
+  .prose__todo {
+    background: #fff8e1;
+    border-left: 4px solid #f0b429;
+    padding: 14px 16px;
+    margin-bottom: 2em;
+  }
+
+  .prose h2 {
+    font-family: var(--f-head);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--c-blue);
+    margin: 1.6em 0 0.4em;
+  }
+
+  .prose p {
+    font-family: var(--f-body);
+    font-size: 16px;
+    color: #000;
+  }
+</style>

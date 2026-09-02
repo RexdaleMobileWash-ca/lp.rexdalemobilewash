@@ -1,0 +1,166 @@
+---
+/**
+ * Ported from post-110.css — #565a5b64 section, nested accordion #27c61eb7.
+ *
+ * Accordion tokens from the original:
+ *   --n-accordion-title-font-size:18px      (16px <=767)
+ *   --n-accordion-title-normal-color:#000000
+ *   --n-accordion-title-hover-color:#164E83
+ *   --n-accordion-title-active-color:#164E83
+ *   --n-accordion-icon-size:15px
+ *   --n-accordion-icon-normal-color:#164E83
+ *   --n-accordion-icon-hover-color:#002B5B
+ *   item title background #D4E4ED, border solid #164E83
+ *   panel background #D4E4ED
+ *   title text Source Sans Pro 600, line-height 1.1em
+ * Answer bodies (#7a398e87 #4344b61 #3d9fb60 #6f2b97b #db58256):
+ *   Montserrat 400 #000, 14px at <=767.
+ */
+const faqs = [
+  {
+    q: 'What areas do you serve?',
+    a: 'We provide services across the Greater Toronto Area (GTA) and surrounding cities.',
+  },
+  {
+    q: 'Do you offer emergency or same-day services?',
+    a: 'Yes, we offer emergency and same-day services whenever possible. Contact us to check availability.',
+  },
+  {
+    q: 'Are your cleaning products safe for the environment?',
+    a: 'Yes, we use eco-friendly and biodegradable cleaning solutions that are safe for both your property and the environment.',
+  },
+  {
+    q: 'How do I get a quote for my service?',
+    a: 'You can request a free quote by filling out our online form or calling us directly.',
+  },
+  {
+    q: 'Will pressure washing damage my storefront?',
+    a: 'No, we use professional techniques and appropriate pressure levels to ensure your storefront is cleaned safely without damage.',
+  },
+];
+---
+
+<section class="sec faq" id="faqs">
+  <div class="inner">
+    <!-- #1512754e : centred, 40px, #164E83 -->
+    <h2 class="h-sec faq__title">FAQs</h2>
+
+    <div class="faq__list">
+      {
+        faqs.map((f, i) => (
+          <details class="faq__item" open={i === 0}>
+            <summary>
+              <span class="faq__q">{f.q}</span>
+              <span class="faq__icon" aria-hidden="true" />
+            </summary>
+            <div class="faq__panel">
+              <p>{f.a}</p>
+            </div>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq {
+    background-color: #fff;
+  }
+
+  .faq__title {
+    text-align: center;
+  }
+
+  .faq__list {
+    margin-top: 20px;
+    /* --n-accordion-item-title-space-between:0px */
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .faq__item {
+    border: 1px solid var(--c-blue);
+    border-bottom-width: 0;
+  }
+
+  .faq__item:last-child {
+    border-bottom-width: 1px;
+  }
+
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+    list-style: none;
+    background-color: var(--c-blue-pale);
+    padding: 14px 18px;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary:focus-visible {
+    outline: 2px solid var(--c-blue);
+    outline-offset: -2px;
+  }
+
+  .faq__q {
+    font-family: var(--f-head);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.1em;
+    color: #000;
+    transition: color 0.3s;
+  }
+
+  summary:hover .faq__q,
+  .faq__item[open] .faq__q {
+    color: var(--c-blue);
+  }
+
+  .faq__icon {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    border-right: 2px solid var(--c-blue);
+    border-bottom: 2px solid var(--c-blue);
+    transform: rotate(45deg) translate(-2px, -2px);
+    transition: transform 0.3s, border-color 0.3s;
+  }
+
+  summary:hover .faq__icon,
+  .faq__item[open] .faq__icon {
+    border-color: #002b5b;
+  }
+
+  .faq__item[open] .faq__icon {
+    transform: rotate(-135deg) translate(-2px, -2px);
+  }
+
+  /* --n-accordion-item-title-distance-from-content:0px, panel bg #D4E4ED */
+  .faq__panel {
+    background-color: var(--c-blue-pale);
+    padding: 0 18px 16px;
+  }
+
+  .faq__panel p {
+    font-family: var(--f-body);
+    font-weight: 400;
+    color: #000;
+    margin: 0;
+  }
+
+  @media (max-width: 767px) {
+    .faq__q {
+      font-size: 16px;
+    }
+    .faq__panel p {
+      font-size: 14px;
+    }
+  }
+</style>

@@ -1,0 +1,112 @@
+---
+/**
+ * Ported from post-110.css — #4be2fb8 section, #2fffba5 row,
+ * cards #c385b69 #6a0e890 #5371f99 #f319999 #348ce82 (identical styling),
+ * icon boxes #8576508 #4e7160e #e289a24 #8dec437 #6663c34.
+ */
+const items = [
+  {
+    title: 'Serving the GTA & Beyond',
+    body: 'We provide services across the Greater Toronto Area and surrounding cities, ensuring reliable and professional solutions wherever you are.',
+  },
+  {
+    title: 'Experienced Professionals',
+    body: 'Our skilled team uses advanced equipment and techniques to deliver top-quality results.',
+  },
+  {
+    title: 'Eco-Friendly Cleaning',
+    body: 'We use environmentally safe products and methods to protect your property and the environment.',
+  },
+  {
+    title: 'Fast & Efficient Service',
+    body: 'Our team responds quickly and works efficiently to meet your needs on time and with precision.',
+  },
+  {
+    title: 'Customer Satisfaction Guaranteed',
+    body: 'We take pride in delivering outstanding service, ensuring that every client is happy with the results.',
+  },
+];
+---
+
+<section class="sec why" id="why-us">
+  <div class="inner">
+    <!-- #1c94902 : centred, 40px -->
+    <h2 class="h-sec why__title">Why Choose Rexdale Mobile Wash</h2>
+
+    <!-- #2fffba5 : row, wrap, justify-content center -->
+    <div class="why__row">
+      {
+        items.map((i) => (
+          <article class="why__card">
+            <h3 class="why__card-title">{i.title}</h3>
+            <p class="why__card-body">{i.body}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .why {
+    background-color: #fff;
+  }
+
+  .why__title {
+    text-align: center;
+  }
+
+  .why__row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  /* border 1px solid #9DB6C9, padding 25px (15px <=1024),
+     hover box-shadow 5px 5px 0 0 #164E83 */
+  .why__card {
+    width: 100%;
+    border: 1px solid var(--c-blue-grey);
+    padding: 25px;
+    margin: 10px;
+    transition: box-shadow 0.3s;
+  }
+
+  .why__card:hover {
+    box-shadow: 5px 5px 0 0 var(--c-blue);
+  }
+
+  .why__card-title {
+    font-family: var(--f-head);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--c-blue-mid);
+    margin: 0 0 10px;
+  }
+
+  .why__card-body {
+    font-family: var(--f-body);
+    font-size: 16px;
+    font-weight: 400;
+    color: #000;
+    margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    .why__card {
+      width: 30%;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .why__card {
+      padding: 15px;
+    }
+    .why__card-title {
+      font-size: 18px;
+      line-height: 1.3em;
+    }
+  }
+</style>

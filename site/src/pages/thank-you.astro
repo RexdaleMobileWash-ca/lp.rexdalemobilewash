@@ -1,0 +1,74 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base
+  title="Thank You - Rexdale Mobile Wash"
+  description="We have received your inquiry. One of our experts will get in touch with you as soon as possible."
+>
+  <Header />
+
+  <main class="ty">
+    <div class="ty__inner">
+      <h1 class="ty__head">Thank You</h1>
+      <p class="ty__body">
+        We have received your inquiry. One of our experts will get in touch with
+        you as soon as possible.
+      </p>
+      <a href="/" class="btn btn-dark">Back to Home</a>
+    </div>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .ty {
+    background-color: var(--c-blue);
+    min-height: 58vh;
+    display: flex;
+    align-items: center;
+    padding: 100px 10px;
+  }
+
+  .ty__inner {
+    width: 100%;
+    max-width: 720px;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .ty__head {
+    font-family: var(--f-head);
+    font-size: 40px;
+    font-weight: 600;
+    color: var(--c-blue-pale);
+    margin: 0 0 0.4em;
+  }
+
+  .ty__body {
+    font-family: var(--f-body);
+    font-size: 16px;
+    font-weight: 400;
+    color: #fff;
+    margin: 0 0 1.5em;
+  }
+
+  @media (max-width: 1024px) {
+    .ty__head {
+      font-size: 30px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .ty {
+      padding: 50px 10px;
+    }
+    .ty__head {
+      font-size: 25px;
+      line-height: 1.3em;
+    }
+  }
+</style>
