@@ -60,15 +60,18 @@ npm run build
 npx wrangler deploy          # needs CLOUDFLARE_API_TOKEN
 ```
 
-Live at **https://staging-lp-rexdalemobilewash.ash-47a.workers.dev**.
+Live at **https://staging-lp-rexdalemobilewash.ash-47a.workers.dev**. That is
+the only staging URL; there is no custom domain.
 
-`staging.lp.rexdalemobilewash.ca` is attached to the Worker but does **not**
-resolve: `rexdalemobilewash.ca` still uses GoDaddy nameservers and the
-Cloudflare zone is `pending`, so Cloudflare is not authoritative and creates no
-record. The hostname begins working by itself once the nameservers move — but
-the Cloudflare zone currently holds **zero DNS records**, so cutting over before
-the zone is populated would take down the client's website and email. That is
-gate 6 of the migration (`wp-10-confirm-dns-is-ours`), and it is not done.
+A custom domain was tried and removed. `staging.lp.rexdalemobilewash.ca` cannot
+work while `rexdalemobilewash.ca` sits on GoDaddy nameservers
+(`ns41`/`ns42.domaincontrol.com`): the Cloudflare zone is `pending`, so
+Cloudflare is not authoritative and creates no record, and the zone is `full` on
+a Free plan, so CNAME setup is unavailable. Only a nameserver move would work.
+It is not safe yet — the Cloudflare zone holds **zero records** while the live
+zone carries Microsoft 365 mail (MX to Outlook, SPF, Teams/Skype SRV and CNAME
+records), so a cutover today would take down the client's email along with the
+site. That is gate 6 of the migration (`wp-10-confirm-dns-is-ours`).
 
 Every response carries `X-Robots-Tag: noindex, nofollow`, set in
 `worker/index.js`, so staging cannot compete with the live site in search.
