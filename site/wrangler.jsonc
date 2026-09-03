@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "staging-lp-rexdalemobilewash",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-09-03",
+
+  // Astro builds to dist/ with build.format 'directory', so /privacy-policy
+  // resolves to /privacy-policy/index.html. "auto-trailing-slash" handles that;
+  // "404-page" serves dist/404.html once one exists, and a plain 404 until then.
+  // run_worker_first is required: by default a request matching a static asset
+  // is served without invoking the Worker at all, so the noindex header in
+  // worker/index.js would never be applied.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+
+  // The custom domain is attached in Cloudflare but does NOT resolve yet:
+  // rexdalemobilewash.ca is still on GoDaddy nameservers (ns41/ns42
+  // .domaincontrol.com) and the Cloudflare zone is 'pending', so Cloudflare is
+  // not authoritative and creates no DNS record. It starts working on its own
+  // once the nameservers are cut over to Cloudflare. Declared here so a deploy
+  // does not drop the binding.
+  "routes": [
+    { "pattern": "staging.lp.rexdalemobilewash.ca", "custom_domain": true }
+  ],
+
+  // Declaring "routes" turns the workers.dev route off unless it is set
+  // explicitly. Keep it on: it is the only URL that resolves until the
+  // nameservers move, and it is how staging is actually viewed today.
+  "workers_dev": true,
+
+  "observability": { "enabled": true }
+}

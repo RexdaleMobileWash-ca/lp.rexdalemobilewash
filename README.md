@@ -49,6 +49,30 @@ bin/where.py    gate-record reader from the earlier scaffolding attempt
 No `src/data`, no `src/styles`, no Tailwind — globals live in `Base.astro`,
 content lives inline in the components. Astro `^7.0.0`, `output: 'static'`.
 
+## Staging
+
+Deployed as a Cloudflare Worker (static assets) named
+`staging-lp-rexdalemobilewash`:
+
+```bash
+cd site
+npm run build
+npx wrangler deploy          # needs CLOUDFLARE_API_TOKEN
+```
+
+Live at **https://staging-lp-rexdalemobilewash.ash-47a.workers.dev**.
+
+`staging.lp.rexdalemobilewash.ca` is attached to the Worker but does **not**
+resolve: `rexdalemobilewash.ca` still uses GoDaddy nameservers and the
+Cloudflare zone is `pending`, so Cloudflare is not authoritative and creates no
+record. The hostname begins working by itself once the nameservers move — but
+the Cloudflare zone currently holds **zero DNS records**, so cutting over before
+the zone is populated would take down the client's website and email. That is
+gate 6 of the migration (`wp-10-confirm-dns-is-ours`), and it is not done.
+
+Every response carries `X-Robots-Tag: noindex, nofollow`, set in
+`worker/index.js`, so staging cannot compete with the live site in search.
+
 `standalone/` exists because Astro's absolute `/_astro/...` paths break under
 `file://`. Double-click `standalone/index.html`; hard-refresh with Ctrl+F5 if
 you have opened it before. It is generated, so re-run `bin/make-standalone.mjs`
