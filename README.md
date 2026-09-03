@@ -118,7 +118,85 @@ only referenced through kit variables that every visible element overrides;
 **Roboto Slab** is declared as `--e-global-typography-secondary` and never
 loads at all. Only the two families that do visible work are requested.
 
-## Three deliberate departures from the live site
+## The contact form
+
+Both estimate forms (hero and closing CTA) post to **`POST /api/contact`**,
+handled at request time by `site/worker/contact.js` and sent through Resend.
+
+The route lives in the Worker, not in `src/pages`. The build is
+`output: 'static'`, so a route under `src/pages` would be prerendered to a file
+and would accept nothing. Keeping it in the Worker also preserves the noindex
+wrapper in `worker/index.js`, which the `@astrojs/cloudflare` adapter would
+have replaced.
+
+### Addressing — do not "improve" this casually
+
+| | |
+|---|---|
+| From | `forms@brandingcentres.com` — the **shared** sending domain |
+| To | `dispatch@rexdalemobilewash.ca` |
+| Cc | `Paolo@tboxstudio.com` |
+| Reply-To | `dispatch@rexdalemobilewash.ca` |
+
+`rexdalemobilewash.ca` is **never** used as a sending domain. That is the whole
+point: no SPF, DKIM or DMARC record of the client's is involved, so nothing this
+endpoint does can reach their Microsoft 365 mail reputation. The visitor's
+address never goes in `From` either — to a receiving mail server that is forgery
+and it lands every notification in spam. It goes in the body as a `mailto:` link.
+
+The visitor also gets a confirmation email (`CONTACT_CONFIRM`), sent *after* the
+notification has already succeeded and best-effort: a bounced confirmation must
+never cost the client a real lead.
+
+### The API key is a Worker secret
+
+```bash
+cd site
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
+```
+
+Resend key name `lp.rexdalemobilewash.ca`, scoped to *sending access on
+brandingcentres.com only*. Rotate by creating a new key in Resend and re-running
+the command above.
+
+**Do not add it as a Build variable.** A build variable is present while the
+build runs and absent when the route executes: the build passes and the form
+500s in production. Everything else (addresses, site name) is a plain `var` in
+`wrangler.jsonc` on purpose, so it is visible in review.
+
+### Abuse protection, and what is actually protecting it
+
+- **Honeypot** — a hidden `company` field. Anything that arrives filled in is a
+  bot, and gets a `202` rather than an error, because telling a bot it failed
+  only makes it retry. This stops more real-world form spam than the rate limit.
+- **Rate limit** — 8/min per IP via the Workers rate limiting binding. Know what
+  this is: it is counted **per data centre** and is documented as "permissive,
+  eventually consistent, and intentionally designed to not be used as an
+  accurate accounting system". A caller spread across colos gets a multiple of
+  the limit. It is a brake on the naive case, not a guarantee.
+- **Not yet present:** a WAF rate limiting rule and Turnstile. Both need a
+  Cloudflare **zone** to attach to, and this is served from `workers.dev`. Add
+  them when the Worker gets a custom domain.
+
+### Client mail, re-proven after this change
+
+Unchanged, as it must be — GoDaddy nameservers, Outlook MX, M365 records:
+
+```
+NS    ns41/ns42.domaincontrol.com
+MX    rexdalemobilewash-ca.mail.protection.outlook.com
+TXT   v=spf1 include:secureserver.net -all
+TXT   NETORG7588905.onmicrosoft.com
+```
+
+**Pre-existing, not caused by this work:** that SPF record authorises GoDaddy
+(`secureserver.net`) with a hard fail `-all`, but the domain's mail is on
+Microsoft 365, which is *not* included. Mail sent from their tenant can fail
+SPF at strict receivers. There is also no `_dmarc` record. Worth raising with
+whoever owns the client's mail — it is a DNS edit on their side, deliberately
+outside what this endpoint touches.
+
+## Two deliberate departures from the live site
 
 **1. The hero slideshow is fixed, not copied.** `#18016ff0` is an Elementor Pro
 background slideshow over the five banner images. Its `data-settings` gallery
@@ -131,12 +209,9 @@ grey instead, delete `.hero__slides`.
 Elementor `e-gallery` — CSS background-images injected by JavaScript, invisible
 to crawlers and screen readers. Now nine `<img>` elements with alt text.
 
-**3. The forms do not submit.** The original posts to WordPress `admin-ajax`
-via Elementor Pro Forms, which does not exist in a static build. `ENDPOINT` in
-`EstimateForm.astro` is empty on purpose — submitting shows a visible "not
-connected, please call" notice rather than silently dropping a real enquiry.
-Field names are preserved: name, email, phone, city, message. **Wire this before
-go-live.**
+*(The third departure — forms that did not submit — is resolved; see **The
+contact form** above. Field names are unchanged: name, email, phone, city,
+message.)*
 
 ## Images
 

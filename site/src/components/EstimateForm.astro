@@ -7,67 +7,159 @@
  * Fields are identical in both: Montserrat 400, #000 text, white bg,
  * 1px #D4E4ED border, 5px radius, 10px gutter, 10px bottom margin.
  *
- * The original posts to WordPress admin-ajax (Elementor Pro Forms), which does
- * not exist in a static build. ENDPOINT is empty on purpose so a submission
- * fails visibly rather than silently dropping a real enquiry.
+ * The original posted to WordPress admin-ajax (Elementor Pro Forms), which does
+ * not exist in a static build. It now posts to /api/contact, handled at request
+ * time by worker/contact.js, which sends through Resend.
+ *
+ * The form works without JavaScript: a plain POST gets a 303 to /thank-you.
+ * The script below upgrades that to a fetch so validation errors appear in
+ * place instead of costing the visitor the page they were reading.
  */
 interface Props {
   variant?: 'hero' | 'cta';
   id?: string;
 }
 const { variant = 'hero', id = 'estimate' } = Astro.props;
-const ENDPOINT = '';
+const ENDPOINT = '/api/contact';
 ---
 
-<form
-  class={`ef ef--${variant}`}
-  method="POST"
-  action={ENDPOINT || undefined}
-  data-live={ENDPOINT ? 'true' : 'false'}
->
+<form class={`ef ef--${variant}`} method="POST" action={ENDPOINT}>
   <div class="ef__row">
     <label class="visually-hidden" for={`${id}-name`}>Name</label>
-    <input id={`${id}-name`} name="name" type="text" placeholder="Name*" required />
+    <input
+      id={`${id}-name`}
+      name="name"
+      type="text"
+      placeholder="Name*"
+      autocomplete="name"
+      maxlength="120"
+      required
+    />
   </div>
 
   <div class="ef__row">
     <label class="visually-hidden" for={`${id}-email`}>Email</label>
-    <input id={`${id}-email`} name="email" type="email" placeholder="Email*" required />
+    <input
+      id={`${id}-email`}
+      name="email"
+      type="email"
+      placeholder="Email*"
+      autocomplete="email"
+      maxlength="200"
+      required
+    />
   </div>
 
   <div class="ef__row ef__row--split">
     <div>
       <label class="visually-hidden" for={`${id}-phone`}>Phone</label>
-      <input id={`${id}-phone`} name="phone" type="tel" placeholder="Phone*" required />
+      <input
+        id={`${id}-phone`}
+        name="phone"
+        type="tel"
+        placeholder="Phone*"
+        autocomplete="tel"
+        maxlength="60"
+        required
+      />
     </div>
     <div>
       <label class="visually-hidden" for={`${id}-city`}>City</label>
-      <input id={`${id}-city`} name="city" type="text" placeholder="City" />
+      <input
+        id={`${id}-city`}
+        name="city"
+        type="text"
+        placeholder="City"
+        autocomplete="address-level2"
+        maxlength="120"
+      />
     </div>
   </div>
 
   <div class="ef__row">
     <label class="visually-hidden" for={`${id}-message`}>Message</label>
-    <textarea id={`${id}-message`} name="message" rows="3" placeholder="Message"></textarea>
+    <textarea
+      id={`${id}-message`}
+      name="message"
+      rows="3"
+      placeholder="Message"
+      maxlength="4000"></textarea>
+  </div>
+
+  {/*
+    Honeypot. Hidden from people and from screen readers, so anything that
+    arrives filled in is a bot. The worker answers those 202 rather than an
+    error — telling a bot it failed only makes it retry.
+  */}
+  <div class="ef__hp" aria-hidden="true">
+    <label for={`${id}-company`}>Company</label>
+    <input
+      id={`${id}-company`}
+      name="company"
+      type="text"
+      tabindex="-1"
+      autocomplete="off"
+    />
   </div>
 
   <div class="ef__row">
     <button type="submit">Submit</button>
   </div>
 
-  <p class="ef__notice" hidden>
-    This form is not connected yet — please call
-    <a href="tel:4162446497">(416) 244-6497</a>.
-  </p>
+  <p class="ef__notice" role="status" aria-live="polite" hidden></p>
 </form>
 
 <script>
-  document.querySelectorAll('.ef').forEach((form) => {
-    if (form.getAttribute('data-live') === 'true') return;
-    const notice = form.querySelector('.ef__notice');
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (notice) notice.hidden = false;
+  const PHONE = '(416) 244-6497';
+
+  document.querySelectorAll<HTMLFormElement>('.ef').forEach((form) => {
+    const notice = form.querySelector<HTMLParagraphElement>('.ef__notice');
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (!notice || !button) return;
+
+    const label = button.textContent;
+
+    const say = (message: string, tone: 'error' | 'busy') => {
+      notice.textContent = message;
+      notice.dataset.tone = tone;
+      notice.hidden = false;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      if (!form.reportValidity()) return;
+      event.preventDefault();
+
+      button.disabled = true;
+      button.textContent = 'Sending…';
+      say('Sending your request…', 'busy');
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(Object.fromEntries(new FormData(form).entries())),
+        });
+
+        if (response.ok) {
+          // Leave the button disabled: the navigation is already committed, and
+          // re-enabling it invites a duplicate submission on a slow connection.
+          window.location.assign('/thank-you');
+          return;
+        }
+
+        const body = await response.json().catch(() => ({}));
+        say(
+          body.error || `Something went wrong. Please call ${PHONE}.`,
+          'error',
+        );
+      } catch {
+        // Offline, or the endpoint is unreachable — as in the standalone/
+        // file:// preview, which has no worker behind it.
+        say(`We could not reach the server. Please call ${PHONE}.`, 'error');
+      }
+
+      button.disabled = false;
+      button.textContent = label;
     });
   });
 </script>
@@ -156,25 +248,53 @@ const ENDPOINT = '';
     color: #fff;
   }
 
+  /*
+   * Honeypot. Moved off-screen rather than display:none — a bot that skips
+   * display:none fields still fills this one, which is the point.
+   */
+  .ef__hp {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .ef__notice {
     margin: 4px 0 0;
+    font-family: var(--f-body);
     font-size: 14px;
     padding: 8px 10px;
     border-radius: 3px;
   }
 
-  .ef--hero .ef__notice {
+  .ef__notice[data-tone='busy'] {
     color: #fff;
     background: rgb(0 0 0 / 25%);
   }
 
-  .ef--hero .ef__notice a {
-    color: var(--c-blue-pale);
+  .ef--cta .ef__notice[data-tone='busy'] {
+    color: #5b6b7a;
+    background: #eef3f7;
   }
 
-  .ef--cta .ef__notice {
+  .ef--hero .ef__notice[data-tone='error'] {
+    color: #fff;
+    background: rgb(179 38 30 / 65%);
+  }
+
+  .ef--cta .ef__notice[data-tone='error'] {
     color: #b3261e;
     background: #fdecea;
+  }
+
+  button[type='submit']:disabled {
+    opacity: 0.7;
+    cursor: progress;
   }
 
   @media (max-width: 480px) {

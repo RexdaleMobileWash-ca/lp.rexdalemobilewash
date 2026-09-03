@@ -26,5 +26,37 @@
   // workers_dev is set explicitly alongside it.
   "workers_dev": true,
 
+  // Contact-form addressing. Non-secret on purpose — these are the values worth
+  // seeing in review, and the only credential is RESEND_API_KEY (below).
+  //
+  // CONTACT_FROM must stay on the SHARED sending domain. rexdalemobilewash.ca is
+  // never a sending domain here: that is what keeps the client's Microsoft 365
+  // mail reputation entirely out of reach of this Worker.
+  "vars": {
+    "SITE_NAME": "Rexdale Mobile Wash",
+    "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
+    "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
+    "CONTACT_CC": "Paolo@tboxstudio.com",
+    "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
+    "CONTACT_CONFIRM": "true"
+  },
+
+  // RESEND_API_KEY is NOT here. It is a Worker secret:
+  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
+  // Adding it as a Build variable instead is the trap: it is present while the
+  // build runs and absent when the route executes, so the build passes and the
+  // form 500s in production.
+
+  // Per-IP rate limit on the form. A public form with no limit is a spam relay,
+  // and the sending reputation it would burn is the shared domain's. `period`
+  // accepts only 10 or 60.
+  "ratelimits": [
+    {
+      "name": "CONTACT_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 8, "period": 60 }
+    }
+  ],
+
   "observability": { "enabled": true }
 }

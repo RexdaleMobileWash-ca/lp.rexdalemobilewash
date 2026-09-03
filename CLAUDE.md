@@ -35,6 +35,24 @@ CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler deploy
 After deploying, verify against the live URL rather than trusting the
 build — fetch the page and grep for what you changed.
 
+## The contact form has a Worker secret — redeploys do not carry it
+
+`POST /api/contact` (see `site/worker/contact.js`) needs `RESEND_API_KEY`, set
+as a **Worker secret**, not a build variable or a `var` in `wrangler.jsonc`. A
+build variable is present while the build runs and absent when the route
+executes — the build passes and the form 500s in production.
+
+The secret lives on the Worker, not in the repo, so a Worker created fresh (new
+name, new account) starts without it and the form will 500 until:
+
+```bash
+cd site
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
+```
+
+`npx wrangler secret list` confirms it by name. Ordinary `wrangler deploy`
+preserves it.
+
 ## Staging vs live
 
 - Staging: `https://staging-lp-rexdalemobilewash.ash-47a.workers.dev`
