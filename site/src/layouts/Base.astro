@@ -112,9 +112,22 @@ const {
         --f-head: 'Source Sans 3', 'Source Sans Pro', sans-serif;
         --f-body: 'Montserrat', sans-serif;
 
-        /* .e-con{--container-max-width:1140px} from the kit; sections then
-           override to 80vw at >=768px, 100vw at 768-1024px */
-        --wrap-max: 1140px;
+        /* The kit's .e-con{--container-max-width:1140px} is a *fallback*:
+           Elementor resolves the inner as
+             --content-width: min(100%, var(--container-max-width, 1140px))
+           so the 1140px only applies to containers that never set their own
+           --content-width. Every one of the 11 containers on this page does
+           set it — 80vw at >=1025px, 100vw in the 768-1024 band — so none of
+           them is capped at 1140px on the live site.
+
+           Keeping 1140px here clamped every section on screens wider than
+           ~1425px (where 80vw first exceeds 1140), which the live site does
+           not do. Verified against post-110.css and by measuring the live
+           page: at a 1920 viewport each section is 1536px (80vw), not 1140.
+
+           Only the cap is dropped; the 80vw/100vw widths are set per section
+           and are unchanged, so nothing below 1425px moves. */
+        --wrap-max: none;
       }
 
       *,

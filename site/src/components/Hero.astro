@@ -162,13 +162,12 @@ const slides = [
      `flex-wrap: wrap` instead made the 105% overflow wrap the panel onto its
      own row at every desktop width.
 
-     The hero also opts out of the 1140px kit cap: post-110.css sets
-     --content-width:80vw on #18016ff0, and Elementor's --container-max-width
-     no longer applies once a container overrides --content-width. */
+     (The 1140px cap that also clamped this section is handled globally in
+     Base.astro, where --wrap-max is now none — it was never applied to any
+     container on the live site.) */
   @media (min-width: 1025px) {
     .hero__inner {
       flex-wrap: nowrap;
-      max-width: none;
     }
   }
 

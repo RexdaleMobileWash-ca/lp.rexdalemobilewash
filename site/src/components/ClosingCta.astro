@@ -223,6 +223,26 @@ const areas = [
     }
   }
 
+  /* Desktop only — scoped above 1024 so the stacked mobile/tablet lists are
+     untouched.
+
+     Both of these widgets are icon lists set to "inline" on the live site:
+     #3831df68 (phone / email / directions) and #2484af25 (Areas We Serve)
+     carry Elementor's .elementor-inline-items, which lays the items out in a
+     wrapping row. They are the only two inline lists on the page — the four
+     service bullet lists have no such class and stay stacked, which is what
+     .ticks already does. The port rendered these two stacked as well, so on
+     desktop the panel ran tall with one item per line. */
+  @media (min-width: 1025px) {
+    .cta__contact,
+    .cta__areas {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      column-gap: 20px;
+    }
+  }
+
   @media (min-width: 768px) and (max-width: 1024px) {
     .cta__inner {
       width: 100vw;
