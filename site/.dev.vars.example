@@ -1,0 +1,24 @@
+# Copy to site/.dev.vars for `wrangler dev`. Never commit .dev.vars — it is
+# covered by the .env* rules in .gitignore only if renamed, so it is listed
+# there explicitly.
+#
+# In production these are Worker secrets, not vars. Set each one with:
+#   npx wrangler secret put MAILGUN_API_KEY
+# Do NOT put any of them in wrangler.jsonc — that file is committed.
+
+# Required. Mailgun private API key (Mailgun dashboard → API keys).
+MAILGUN_API_KEY=
+
+# Required. The Mailgun *sending domain*. Use a subdomain, not the apex:
+# mg.rexdalemobilewash.ca. The apex carries the client's Microsoft 365 mail,
+# and a subdomain keeps Mailgun's SPF/DKIM records off it entirely.
+MAILGUN_DOMAIN=mg.rexdalemobilewash.ca
+
+# Optional. Defaults to postmaster@$MAILGUN_DOMAIN.
+FORM_FROM=Rexdale Mobile Wash Website <forms@mg.rexdalemobilewash.ca>
+
+# Optional. Defaults to dispatch@rexdalemobilewash.ca.
+FORM_TO=dispatch@rexdalemobilewash.ca
+
+# Optional. Set to "eu" only if the Mailgun account is in the EU region.
+MAILGUN_REGION=
