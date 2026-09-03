@@ -123,73 +123,6 @@ site. That is gate 6 of the migration (`wp-10-confirm-dns-is-ours`).
 Every response carries `X-Robots-Tag: noindex, nofollow`, set in
 `worker/index.js`, so staging cannot compete with the live site in search.
 
-## Forms
-
-Both estimate forms POST to `/api/estimate` on the same Worker.
-`worker/index.js` validates the submission and hands it to the Mailgun
-messages API; `ASSETS` serves everything else. The route is only reachable
-because `run_worker_first: true` is set in `wrangler.jsonc` — without it a
-request matching a static asset never invokes the Worker.
-
-| Outcome | With JS | Without JS |
-|---|---|---|
-| Sent | `{"ok":true}`, page navigates to `/thank-you` | `303` → `/thank-you` |
-| Rejected / failed | `{"ok":false,"message":…}` shown in the form | self-contained HTML error page |
-| Secrets unset | `503`, "not connected — please call" | same, as an HTML page |
-
-The submitter's address goes in `Reply-To`, so the client replies straight from
-their inbox. Two spam traps: a hidden `_gotcha` field, and a `_ts` stamp written
-by JS on page load — a post under two seconds old is dropped. Both answer `200`
-so a bot sees success and does not retry with the field cleared. Neither runs
-when the field is absent, so no-JS submissions are unaffected.
-
-### Secrets
-
-Worker secrets, never in `wrangler.jsonc` — that file is committed.
-`site/.dev.vars.example` documents all five; copy it to `site/.dev.vars` for
-`wrangler dev`.
-
-```bash
-cd site
-npx wrangler secret put MAILGUN_API_KEY     # required
-npx wrangler secret put MAILGUN_DOMAIN      # required — mg.rexdalemobilewash.ca
-npx wrangler secret put FORM_FROM           # optional, default postmaster@$MAILGUN_DOMAIN
-npx wrangler secret put FORM_TO             # optional, default dispatch@rexdalemobilewash.ca
-npx wrangler secret put MAILGUN_REGION      # optional, only if the account is EU
-```
-
-Until `MAILGUN_API_KEY` and `MAILGUN_DOMAIN` are both set the route answers
-`503` with a "please call" message and sends nothing. That is the intended
-pre-provisioning state: a visible failure beats silently dropping an enquiry.
-
-### Use a subdomain as the Mailgun sending domain
-
-**Verify `mg.rexdalemobilewash.ca`, not `rexdalemobilewash.ca`.** The apex
-carries the client's live Microsoft 365 mail — MX to Outlook, one SPF record,
-Teams SRV and CNAME records. Mailgun asks for its own SPF `include:` and a DKIM
-TXT record; adding those at the apex means editing the record the client's
-business email depends on, and a second apex SPF record breaks SPF outright
-(gate 0.3 refuses a build on exactly that). A subdomain gets its own SPF and
-DKIM and touches nothing the client sends mail with.
-
-DNS for `rexdalemobilewash.ca` is still on GoDaddy nameservers
-(`ns41`/`ns42.domaincontrol.com`) — the Cloudflare zone is `pending` and holds
-zero records, so **the Mailgun records must be added at GoDaddy**, not
-Cloudflare. Only the `mg` subdomain records; do not touch the apex.
-
-### Verifying it end to end
-
-```bash
-curl -si https://staging-lp-rexdalemobilewash.ash-47a.workers.dev/api/estimate \
-  -H 'Accept: application/json' \
-  -d 'name=Test&email=you@example.com&phone=4162446497&city=Etobicoke&message=test'
-```
-
-`{"ok":true,…}` plus mail in the `FORM_TO` inbox is a pass. `503` means the
-secrets are not set; `502` means Mailgun rejected the call — check
-`npx wrangler tail` for the status it returned, most often an unverified
-sending domain.
-
 `standalone/` exists because Astro's absolute `/_astro/...` paths break under
 `file://`. Double-click `standalone/index.html`; hard-refresh with Ctrl+F5 if
 you have opened it before. It is generated, so re-run `bin/make-standalone.mjs`
@@ -245,11 +178,12 @@ grey instead, delete `.hero__slides`.
 Elementor `e-gallery` — CSS background-images injected by JavaScript, invisible
 to crawlers and screen readers. Now nine `<img>` elements with alt text.
 
-**3. The forms post to the Worker, not to WordPress.** The original posts to
-`admin-ajax` via Elementor Pro Forms, which does not exist in a static build.
-Both forms now post to `/api/estimate`, handled by `worker/index.js`, which
-mails the submission through Mailgun. Field names are preserved: name, email,
-phone, city, message. See **Forms** below.
+**3. The forms do not submit.** The original posts to WordPress `admin-ajax`
+via Elementor Pro Forms, which does not exist in a static build. `ENDPOINT` in
+`EstimateForm.astro` is empty on purpose — submitting shows a visible "not
+connected, please call" notice rather than silently dropping a real enquiry.
+Field names are preserved: name, email, phone, city, message. **Wire this before
+go-live.**
 
 ## Images
 
