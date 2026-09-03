@@ -152,6 +152,26 @@ const slides = [
     margin: 0 0 15px;
   }
 
+  /* Desktop only — scoped above the 1024 breakpoint so the stacked mobile
+     and tablet layout below is untouched.
+
+     The copy and panel are 70% + 35% = 105%, which is deliberate: Elementor
+     sets --flex-wrap only inside its tablet and mobile blocks, so on desktop
+     the row is nowrap and the two children shrink proportionally to fit —
+     70/105 and 35/105, i.e. 66.67% and 33.33%. Inheriting the generic
+     `flex-wrap: wrap` instead made the 105% overflow wrap the panel onto its
+     own row at every desktop width.
+
+     The hero also opts out of the 1140px kit cap: post-110.css sets
+     --content-width:80vw on #18016ff0, and Elementor's --container-max-width
+     no longer applies once a container overrides --content-width. */
+  @media (min-width: 1025px) {
+    .hero__inner {
+      flex-wrap: nowrap;
+      max-width: none;
+    }
+  }
+
   @media (max-width: 1024px) {
     .hero {
       min-height: 70vh;
