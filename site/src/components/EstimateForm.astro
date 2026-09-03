@@ -7,24 +7,35 @@
  * Fields are identical in both: Montserrat 400, #000 text, white bg,
  * 1px #D4E4ED border, 5px radius, 10px gutter, 10px bottom margin.
  *
- * The original posts to WordPress admin-ajax (Elementor Pro Forms), which does
- * not exist in a static build. ENDPOINT is empty on purpose so a submission
- * fails visibly rather than silently dropping a real enquiry.
+ * The original posted to WordPress admin-ajax (Elementor Pro Forms), which does
+ * not exist in a static build. It now posts to /api/estimate, handled by
+ * worker/index.js, which mails the submission through Mailgun. Field names are
+ * unchanged from the original: name, email, phone, city, message.
+ *
+ * Submits over fetch when JS is available, and as a plain form POST when it is
+ * not — the worker answers both, redirecting a no-JS success to /thank-you.
  */
 interface Props {
   variant?: 'hero' | 'cta';
   id?: string;
 }
 const { variant = 'hero', id = 'estimate' } = Astro.props;
-const ENDPOINT = '';
+const ENDPOINT = '/api/estimate';
 ---
 
-<form
-  class={`ef ef--${variant}`}
-  method="POST"
-  action={ENDPOINT || undefined}
-  data-live={ENDPOINT ? 'true' : 'false'}
->
+<form class={`ef ef--${variant}`} method="POST" action={ENDPOINT}>
+  {/* Tells the client which of the two forms an enquiry came from. `id` is
+      already unique per page — it namespaces every field id below. */}
+  <input type="hidden" name="source" value={id} />
+
+  {/* Spam traps. _gotcha is hidden from people and left empty by real
+      browsers; _ts is stamped by JS on load so a same-instant post is
+      recognisable. Both are ignored when absent. */}
+  <div class="ef__trap" aria-hidden="true">
+    <label for={`${id}-gotcha`}>Leave this field empty</label>
+    <input id={`${id}-gotcha`} name="_gotcha" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+  <input type="hidden" name="_ts" value="" />
   <div class="ef__row">
     <label class="visually-hidden" for={`${id}-name`}>Name</label>
     <input id={`${id}-name`} name="name" type="text" placeholder="Name*" required />
@@ -55,19 +66,60 @@ const ENDPOINT = '';
     <button type="submit">Submit</button>
   </div>
 
-  <p class="ef__notice" hidden>
-    This form is not connected yet — please call
-    <a href="tel:4162446497">(416) 244-6497</a>.
-  </p>
+  <p class="ef__notice" role="status" aria-live="polite" hidden></p>
 </form>
 
 <script>
-  document.querySelectorAll('.ef').forEach((form) => {
-    if (form.getAttribute('data-live') === 'true') return;
-    const notice = form.querySelector('.ef__notice');
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (notice) notice.hidden = false;
+  document.querySelectorAll('.ef').forEach((formEl) => {
+    const form = formEl as HTMLFormElement;
+    const button = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    const notice = form.querySelector('.ef__notice') as HTMLElement | null;
+    const stamp = form.querySelector('input[name="_ts"]') as HTMLInputElement | null;
+
+    if (stamp) stamp.value = String(Date.now());
+
+    const show = (message: string, kind: 'ok' | 'error') => {
+      if (!notice) return;
+      notice.textContent = message;
+      notice.dataset.kind = kind;
+      notice.hidden = false;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (button?.disabled) return;
+
+      if (notice) notice.hidden = true;
+      const label = button?.textContent ?? 'Submit';
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Sending…';
+      }
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+          body: new FormData(form),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.ok) {
+          window.location.assign('/thank-you');
+          return;
+        }
+        show(
+          data.message || 'We could not send that just now — please call (416) 244-6497.',
+          'error'
+        );
+      } catch {
+        show('Network error — please call (416) 244-6497.', 'error');
+      }
+
+      if (button) {
+        button.disabled = false;
+        button.textContent = label;
+      }
     });
   });
 </script>
@@ -89,6 +141,16 @@ const ENDPOINT = '';
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+  }
+
+  /* Honeypot. Off-canvas rather than display:none — some bots skip fields
+     they can tell are not rendered. */
+  .ef__trap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
   }
 
   input,
@@ -156,6 +218,11 @@ const ENDPOINT = '';
     color: #fff;
   }
 
+  button[type='submit']:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+
   .ef__notice {
     margin: 4px 0 0;
     font-size: 14px;
@@ -163,18 +230,20 @@ const ENDPOINT = '';
     border-radius: 3px;
   }
 
+  /* The hero form sits on a photo, so it needs its own contrast treatment. */
   .ef--hero .ef__notice {
     color: #fff;
     background: rgb(0 0 0 / 25%);
   }
 
-  .ef--hero .ef__notice a {
-    color: var(--c-blue-pale);
-  }
-
-  .ef--cta .ef__notice {
+  .ef--cta .ef__notice[data-kind='error'] {
     color: #b3261e;
     background: #fdecea;
+  }
+
+  .ef--cta .ef__notice[data-kind='ok'] {
+    color: #17603f;
+    background: #e7f4ec;
   }
 
   @media (max-width: 480px) {
