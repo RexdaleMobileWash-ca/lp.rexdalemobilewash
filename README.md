@@ -7,7 +7,7 @@ comment beside the block it came from.
 
 ## Status
 
-**Builds clean.** 3 pages, zero errors, zero warnings. `site/dist/` is build
+**Builds clean.** 4 pages, zero errors, zero warnings. `site/dist/` is build
 output and is not committed — `.gitignore` excludes it, and Railway builds from
 source.
 
@@ -40,6 +40,8 @@ site/
                 WhyUs.astro About.astro Faq.astro Clients.astro
                 ClosingCta.astro Footer.astro EstimateForm.astro
     pages/      index.astro privacy-policy.astro thank-you.astro
+                pressure-washing.astro   (self-contained, see below)
+  public/pw-assets/   images + fonts for the pressure-washing page only
   dist/         astro build output, directory format (gitignored)
   standalone/   flat single-file HTML, CSS inlined, opens from file://
   bin/make-standalone.mjs   regenerates standalone/ from dist/
@@ -48,6 +50,51 @@ bin/where.py    gate-record reader from the earlier scaffolding attempt
 
 No `src/data`, no `src/styles`, no Tailwind — globals live in `Base.astro`,
 content lives inline in the components. Astro `^7.0.0`, `output: 'static'`.
+
+## `/pressure-washing/` — the commercial LP
+
+A second landing page, ported from the "Rexdale Mobile Wash — Commercial LP V03"
+design export. It is **not** part of the Elementor replica above and deliberately
+does not use `Base.astro`: it is its own design system (Oswald/Barlow, navy
+`#0A4C8A` + red `#C4141A`) and Base's globals would fight it. Everything it needs
+is in `src/pages/pressure-washing.astro` plus `public/pw-assets/`.
+
+The design arrived as a single 30 MB HTML file: a React runtime that rendered a
+template at load time, with every image and font inlined as base64. Neither half
+of that shipped — Cloudflare rejects a static asset over 25 MiB, and a page
+carrying paid traffic should not be blank until React boots. The template was
+resolved to plain HTML instead:
+
+- the design's `{{ bindings }}` are baked to their initial render state;
+- viewport-dependent ones (hero scrim, header sizing, the sticky mobile bar)
+  became media queries, so no layout decision waits on JavaScript;
+- `style-hover` / `style-focus` became the `.h*` / `.f*` rules in the page head
+  (`!important`, because the base styles are inline and would otherwise win);
+- photos were re-encoded to WebP at 2x their layout box — **22.7 MB → 1.6 MB**;
+- fonts are self-hosted under `/pw-assets/fonts` rather than fetched from Google.
+
+Accordion, carousels, sticky bar and form submission are one vanilla script at
+the end of the body. Verified against the original in headless Chromium at 1440
+and 390: identical page height (11151px), identical visible text, and 0.09% of
+pixels differing — all of it WebP re-encode noise, none by more than a hair.
+
+To regenerate after a new design export, redo the port; there is no build step
+that reads the export at build time.
+
+### Before this page goes live
+
+**The quote forms are not connected.** The design posts to Web3Forms; no access
+key was supplied. `ACCESS_KEY` at the top of the page's inline script is empty,
+and while it is empty a submission is refused in the browser with a visible
+"not connected yet, please call" message rather than posting a real enquiry into
+a void — the same posture as `EstimateForm.astro`. Paste the key there and both
+forms switch on; nothing else needs to change. Until then the page's only
+working conversion path is the phone number.
+
+The page uses the same GTM container as the rest of the build
+(`GTM-NMTLRJ63`), and pushes `generate_lead` to the dataLayer only after
+Web3Forms confirms a success — not on click, which would count abandoned and
+failed submissions as conversions.
 
 ## Staging
 
