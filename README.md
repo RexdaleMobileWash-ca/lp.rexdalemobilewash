@@ -315,7 +315,30 @@ Added, all on names that did not previously exist:
 TXT   resend._domainkey    <Resend DKIM public key>
 TXT   send                 v=spf1 include:amazonses.com ~all
 MX    send                 feedback-smtp.us-east-1.amazonses.com   priority 10
+TXT   _dmarc               v=DMARC1; p=none;
 ```
+
+### `_dmarc` — read this before touching it
+
+`p=none` is **monitoring only**. It asks receivers to take no action on anything;
+it exists so that Exchange Online has a policy to evaluate when it sees mail
+arriving from the internet claiming to be `From` one of its own accepted
+domains, which is exactly the shape of every notification this endpoint now
+sends. Without it those can be quietly filed as junk.
+
+**Do not raise it to `p=quarantine` or `p=reject`.** The form mail would survive
+— it is DKIM-signed as `rexdalemobilewash.ca` and therefore aligned — but the
+client's *real* Microsoft 365 mail would start failing, because the apex SPF
+authorises GoDaddy (`include:secureserver.net -all`) and does not include
+Microsoft 365, and their M365 DKIM is not aligned to this domain. Fix both of
+those first, confirm with aggregate reports over a few weeks, and only then
+tighten. That is a mail-administration project on the client's side, not a
+change to make from this repo.
+
+No `rua=` reporting address is published: an external one (a `@tboxstudio.com`
+address, say) needs an authorising record in *that* domain's DNS to be honoured,
+and putting a working address in public DNS hands it to scrapers. Add one
+deliberately if somebody is actually going to read the reports.
 
 Re-prove it yourself after any change here:
 
