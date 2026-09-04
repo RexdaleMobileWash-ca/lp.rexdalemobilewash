@@ -324,51 +324,68 @@ function notificationEmail(env, v, meta) {
 /*
  * The visitor's own acknowledgement, sent when CONTACT_CONFIRM is 'true'.
  *
- * KNOWN RISK, left in deliberately: this is the only mail here addressed to
- * someone we have not vetted, at an address they chose, quoting text they
- * wrote. That shape is a relay — someone can use the form to send their own
- * words to a third party over our verified domain — and since From moved to
- * rexdalemobilewash.ca, the reputation it would spend is the client's business
- * domain, not a shared one. The honeypot and the per-IP rate limit blunt it;
- * neither closes it.
+ * THIS MAIL CARRIES NO SUBMITTED FREE TEXT, and that is the whole design.
  *
- * The fix, if it is ever wanted, is one line: drop `v.message` from `summary`
- * so the acknowledgement only ever repeats fields the client already holds.
- * That loses the "what you sent us" quote-back, which is why it is a decision
- * and not a silent change.
+ * It is the only message here addressed to someone we have not vetted, at an
+ * address they chose. Anything of theirs we quote back turns the form into a
+ * relay: put words in the message box, put a victim in the email box, and our
+ * verified domain delivers it. Since From moved to rexdalemobilewash.ca, the
+ * reputation that would spend is the client's business domain.
+ *
+ * So the "what you sent us" quote-back is gone, and so is the echo of company,
+ * property type, phone and city — every one of those is a free-text field an
+ * attacker fills. What is left is fixed copy plus a first name run through
+ * greetingName() below.
+ *
+ * If you are tempted to put a submitted value back in here to make the mail
+ * friendlier: don't. The notification to dispatch@ is where submitted content
+ * belongs — that goes to a known address.
  */
+
+/*
+ * A name safe to greet an unvetted stranger with.
+ *
+ * Escaping stops markup; it does not stop a 120-character "name" being used as
+ * the message itself ("Hi YOUR ACCOUNT IS LOCKED, CALL 416-555-0000,").
+ *
+ * So: strip everything that is not a letter, mark, hyphen or apostrophe, then
+ * take only the FIRST WORD. Dropping digits and punctuation kills URLs and
+ * phone numbers; taking one word leaves too little room to say anything. "Dana
+ * O'Neil" greets as "Dana", which is what a person would write anyway. Empty or
+ * unusable in, "there" out.
+ */
+const greetingName = (name) => {
+  const first = String(name || '')
+    .replace(/[^\p{L}\p{M}\s'-]/gu, ' ')
+    .trim()
+    .split(/\s+/)[0]
+    // A lone hyphen or apostrophe is not a name.
+    .replace(/^['-]+|['-]+$/g, '')
+    .slice(0, 40);
+  return first || 'there';
+};
+
 function confirmationEmail(env, v) {
   const site = env.SITE_NAME || 'Rexdale Mobile Wash';
-  // With no message, echo back the details they did give rather than an empty
-  // box — the commercial forms can be submitted with the textarea untouched.
-  const summary =
-    v.message ||
-    [v.company, v.property_type, v.phone, v.city].filter(Boolean).join(' · ');
+  const greeting = greetingName(v.name);
   const html = `<div style="background:#f4f7f9;padding:24px">
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:6px;border:1px solid #d4e4ed;padding:24px">
     <p style="margin:0 0 14px;color:#164E83;font:600 18px/1.3 -apple-system,Segoe UI,Roboto,sans-serif">Thanks for getting in touch</p>
     <p style="margin:0 0 14px;color:#111;font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif">
-      Hi ${esc(v.name)}, we have your request and one of our team will get back to
-      you shortly. If it is urgent, call us on
+      Hi ${esc(greeting)}, we have your request and one of our team will get back
+      to you shortly. If it is urgent, call us on
       <a href="tel:4162446497" style="color:#164E83">(416) 244-6497</a>.
     </p>
-    <p style="margin:0 0 6px;color:#5b6b7a;font:13px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">What you sent us</p>
-    <div style="white-space:pre-wrap;color:#111;font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;background:#f4f7f9;border-radius:4px;padding:12px 14px">${breaks(
-      summary,
-    )}</div>
     <p style="margin:20px 0 0;padding-top:14px;border-top:1px solid #e6edf2;color:#8a97a3;font:12px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">
       ${esc(site)} · this is an automatic confirmation, but replies reach a real person.
     </p>
   </div>
 </div>`;
 
-  const text = `Hi ${v.name},
+  const text = `Hi ${greeting},
 
 Thanks for getting in touch with ${site}. We have your request and one of our
 team will get back to you shortly. If it is urgent, call (416) 244-6497.
-
-What you sent us:
-${summary}
 
 — ${site}`;
 
@@ -379,6 +396,82 @@ ${summary}
     subject: `We got your request — ${site}`,
     html,
     text,
+  };
+}
+
+/*
+ * Turnstile — the front door.
+ *
+ * The honeypot catches blind form-fillers and the rate limit slows a flood, but
+ * neither stops a script written for THIS form, and that is what turns a public
+ * form into a way to spend someone else's sending reputation. Turnstile is the
+ * layer that actually costs an attacker something.
+ *
+ * Enforcement is keyed on the SECRET being present, not on a flag: if
+ * TURNSTILE_SECRET is not set on the Worker, this returns `ok` and the endpoint
+ * behaves exactly as it did before. That is what lets the code ship ahead of the
+ * widget without a window where the form is broken. The page only renders a
+ * widget when it has a sitekey, so the two switch on together.
+ *
+ * FAIL OPEN on an outage, FAIL CLOSED on a bad token. Those are different
+ * things and the distinction is the whole point: if Cloudflare's siteverify is
+ * unreachable or answers nonsense, blocking every submission would turn their
+ * outage into lost leads, so we allow and log. If siteverify answers and says
+ * the token is invalid, expired or already spent, that is a real answer and we
+ * refuse.
+ */
+const TURNSTILE_VERIFY_URL =
+  'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
+async function checkTurnstile(request, env, token) {
+  if (!env.TURNSTILE_SECRET) return { ok: true, skipped: true };
+
+  if (!token) {
+    // No token at all. Either scripting is off — Turnstile needs JavaScript to
+    // produce one — or nothing rendered the widget. Both need a person to read
+    // a sentence, so this message says what to do rather than "forbidden".
+    return {
+      ok: false,
+      reason: 'missing',
+      message:
+        'This form needs JavaScript enabled to check you are not a bot. Turn it on and try again, or call (416) 244-6497 and we will take the details over the phone.',
+    };
+  }
+
+  const body = new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token });
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (ip) body.set('remoteip', ip);
+
+  let outcome;
+  try {
+    const res = await fetch(TURNSTILE_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    outcome = await res.json();
+    if (!res.ok || typeof outcome?.success !== 'boolean') throw new Error(`siteverify ${res.status}`);
+  } catch (err) {
+    console.error('contact: turnstile siteverify unreachable, allowing —', err.message);
+    return { ok: true, degraded: true };
+  }
+
+  if (outcome.success) return { ok: true };
+
+  const codes = outcome['error-codes'] || [];
+  console.log('contact: turnstile rejected —', codes.join(',') || 'no code');
+
+  // A spent or stale token is the common case for a real person who left the
+  // page open, and it is fixed by trying again — say so instead of accusing
+  // them of being a robot.
+  const stale =
+    codes.includes('timeout-or-duplicate') || codes.includes('invalid-input-response');
+  return {
+    ok: false,
+    reason: codes.join(',') || 'rejected',
+    message: stale
+      ? 'That security check expired. Please submit the form again.'
+      : 'We could not verify this submission. Please try again, or call (416) 244-6497.',
   };
 }
 
@@ -516,6 +609,17 @@ export async function handleContact(request, env, ctx) {
   const errors = validate(values);
   if (Object.keys(errors).length) {
     return fail(400, 'Please check the form.', errors);
+  }
+
+  /*
+   * After validate() on purpose. A Turnstile token is single use, so verifying
+   * before we know the fields are good would spend it on a submission we are
+   * about to reject — and the visitor's retry would then fail on a duplicate
+   * token even though they fixed exactly what we asked them to fix.
+   */
+  const turnstile = await checkTurnstile(request, env, String(body['cf-turnstile-response'] ?? ''));
+  if (!turnstile.ok) {
+    return fail(403, turnstile.message);
   }
 
   if (!env.RESEND_API_KEY) {

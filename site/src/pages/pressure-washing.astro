@@ -28,6 +28,8 @@ const DESC =
   'Commercial & industrial pressure washing across the GTA since 1966. Building exteriors, plant and warehouse floors, power scrubbing. Free on-site quote.';
 const SHARE = 'https://lp.rexdalemobilewash.ca/pw-assets/img/hero-building-exterior.webp';
 
+import { TURNSTILE_SITEKEY, TURNSTILE_SCRIPT } from '../turnstile';
+
 // Structured data, carried over from the design unchanged: it describes the
 // business and the FAQ answers rendered further down the page.
 const BUSINESS_LD = {
@@ -161,6 +163,9 @@ const FAQ_LD = {
       })(window, document, 'script', 'dataLayer', 'GTM-NMTLRJ63');
     </script>
     <!-- End Google Tag Manager -->
+
+    {/* Turnstile. Loads only when a sitekey is configured — see src/turnstile.ts. */}
+    {TURNSTILE_SITEKEY && <script is:inline src={TURNSTILE_SCRIPT} async defer />}
 
     <title>{TITLE}</title>
     <meta name="description" content={DESC} />
@@ -650,6 +655,9 @@ const FAQ_LD = {
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">What needs cleaning?</span>
                   <textarea name="message" maxlength="4000" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
                 </label>
+                {TURNSTILE_SITEKEY && (
+                  <div class="cf-turnstile" data-sitekey={TURNSTILE_SITEKEY} data-size="flexible"></div>
+                )}
                 <div role="alert" style="display:none;background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013"></div>
                 <button type="submit" style="width:100%;background:#0A4C8A;color:#FFFFFF;font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:18px;padding:17px 20px;border:0;border-radius:2px;min-height:56px;cursor:pointer" class="h4">
                   <span style="display:inline">Get My Free Quote</span><span style="display:none">Sending…</span>
@@ -1148,6 +1156,9 @@ const FAQ_LD = {
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">What needs cleaning?</span>
                   <textarea name="message" maxlength="4000" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
                 </label>
+                {TURNSTILE_SITEKEY && (
+                  <div class="cf-turnstile" data-sitekey={TURNSTILE_SITEKEY} data-size="flexible"></div>
+                )}
                 <div role="alert" style="display:none;background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013"></div>
                 <button type="submit" style="width:100%;background:#0A4C8A;color:#FFFFFF;font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:18px;padding:17px 20px;border:0;border-radius:2px;min-height:56px;cursor:pointer" class="h4">
                   <span style="display:inline">Get My Free Quote</span><span style="display:none">Sending…</span>
@@ -1309,6 +1320,10 @@ const FAQ_LD = {
               /* Reveal BEFORE writing. A live region that is display:none at
                  the moment its contents change is not in the accessibility
                  tree then, so nothing is announced. */
+              /* A Turnstile token is single use, so whatever went wrong, the
+                 one sitting in this form is spent. Without a reset the retry
+                 fails on a duplicate token and reads as a broken form. */
+              if (window.turnstile && window.turnstile.reset) window.turnstile.reset();
               alertBox.textContent = '';
               alertBox.style.display = 'block';
               if (window.requestAnimationFrame) {

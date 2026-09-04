@@ -15,6 +15,8 @@
  * The script below upgrades that to a fetch so validation errors appear in
  * place instead of costing the visitor the page they were reading.
  */
+import { TURNSTILE_SITEKEY, TURNSTILE_SCRIPT } from '../turnstile';
+
 interface Props {
   variant?: 'hero' | 'cta';
   id?: string;
@@ -22,6 +24,16 @@ interface Props {
 const { variant = 'hero', id = 'estimate' } = Astro.props;
 const ENDPOINT = '/api/contact';
 ---
+
+{
+  /*
+    Turnstile. Renders only when a sitekey is configured — see src/turnstile.ts
+    for why that is paired with the Worker's TURNSTILE_SECRET. The script tag is
+    a hoisted Astro <script>, which is deduplicated across the two instances of
+    this component on the home page, so it loads once.
+  */
+}
+{TURNSTILE_SITEKEY && <script src={TURNSTILE_SCRIPT} async defer />}
 
 <form class={`ef ef--${variant}`} method="POST" action={ENDPOINT}>
   <div class="ef__row">
@@ -106,6 +118,14 @@ const ENDPOINT = '/api/contact';
     <input id={`${id}-fax`} name="fax" type="text" tabindex="-1" autocomplete="off" />
   </div>
 
+  {
+    TURNSTILE_SITEKEY && (
+      <div class="ef__row ef__turnstile">
+        <div class="cf-turnstile" data-sitekey={TURNSTILE_SITEKEY} data-size="flexible" />
+      </div>
+    )
+  }
+
   <div class="ef__row">
     <button type="submit">Submit</button>
   </div>
@@ -163,6 +183,11 @@ const ENDPOINT = '/api/contact';
             : body.error || `Something went wrong. Please call ${PHONE}.`,
           'error',
         );
+
+        // A Turnstile token is single use. Whatever went wrong, the one in the
+        // form is now spent, so a retry without a fresh one fails on a
+        // duplicate — which would read to the visitor as the form being broken.
+        (window as any).turnstile?.reset?.();
       } catch {
         // Offline, or the endpoint is unreachable — as in the standalone/
         // file:// preview, which has no worker behind it.
