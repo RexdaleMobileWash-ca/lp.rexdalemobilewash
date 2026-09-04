@@ -152,8 +152,15 @@ const ENDPOINT = '/api/contact';
         }
 
         const body = await response.json().catch(() => ({}));
+        // The worker answers a 400 with a per-field map as well as a generic
+        // sentence. Prefer the specific ones: "That email address looks wrong."
+        // is something the visitor can act on, where telling them to phone us
+        // over a mistyped address loses the lead we already had.
+        const fieldErrors: string[] = body.errors ? Object.values(body.errors) : [];
         say(
-          body.error || `Something went wrong. Please call ${PHONE}.`,
+          fieldErrors.length
+            ? fieldErrors.join(' ')
+            : body.error || `Something went wrong. Please call ${PHONE}.`,
           'error',
         );
       } catch {

@@ -1291,13 +1291,21 @@ const FAQ_LD = {
               }
             }
 
-            function fail(message) {
+            function fail(message, fieldErrors) {
               busy(false);
               if (!alertBox) return;
-              alertBox.textContent =
-                message +
-                " Your request didn't go through — please call " + PHONE +
-                " and we'll take the details over the phone.";
+              /* The Worker answers a 400 with a per-field map as well as a
+                 generic sentence. Prefer the specific ones — a mistyped email
+                 is something the visitor can fix, and telling them to phone
+                 instead loses a lead we already had. */
+              var listed = fieldErrors
+                ? Object.keys(fieldErrors).map(function (k) { return fieldErrors[k]; })
+                : [];
+              alertBox.textContent = listed.length
+                ? listed.join(' ')
+                : message +
+                  " Your request didn't go through — please call " + PHONE +
+                  " and we'll take the details over the phone.";
               alertBox.style.display = 'block';
             }
 
@@ -1324,8 +1332,13 @@ const FAQ_LD = {
                 .then(function (res) {
                   if (!res.ok) {
                     /* The Worker answers {ok:false, error:"…"} — a sentence
-                       already written for a visitor to read. */
-                    throw new Error((res.body && res.body.error) || 'Submission was rejected.');
+                       already written for a visitor to read — plus, on a 400,
+                       an `errors` map keyed by field. Carry both to fail(). */
+                    var err = new Error(
+                      (res.body && res.body.error) || 'Submission was rejected.'
+                    );
+                    err.fieldErrors = res.body && res.body.errors;
+                    throw err;
                   }
                   /* generate_lead fires only after the Worker confirms the
                      notification was accepted — firing it on click would
@@ -1341,7 +1354,7 @@ const FAQ_LD = {
                   }
                 })
                 .catch(function (err) {
-                  fail((err && err.message) || 'Network error.');
+                  fail((err && err.message) || 'Network error.', err && err.fieldErrors);
                 });
             });
           }

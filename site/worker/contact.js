@@ -185,8 +185,16 @@ async function readBody(request) {
     type.includes('application/x-www-form-urlencoded') ||
     type.includes('multipart/form-data')
   ) {
-    const form = await request.formData();
-    return Object.fromEntries(form.entries());
+    // Guarded exactly like the JSON branch above. A multipart header with no
+    // boundary, or a body that does not match the one it declares, makes
+    // formData() reject — and an unguarded reject here escapes the Worker and
+    // replaces the 415 below with a Cloudflare error page.
+    try {
+      const form = await request.formData();
+      return Object.fromEntries(form.entries());
+    } catch {
+      return null;
+    }
   }
   return null;
 }
@@ -380,11 +388,29 @@ export async function handleContact(request, env, ctx) {
     return fail(405, 'Use POST.');
   }
 
-  // A browser form post always carries Origin. A missing Origin is a non-browser
-  // client (the deploy proof uses curl) and is allowed; a foreign one is not.
+  /*
+   * A browser form post always carries Origin. A missing Origin is a
+   * non-browser client (the deploy proof uses curl) and is allowed; a foreign
+   * one is not.
+   *
+   * Parsed defensively. `Origin: null` is a legal header a browser sends
+   * whenever the submitting document has an opaque origin — a sandboxed iframe,
+   * a CSP sandbox directive, some privacy extensions — and `new URL('null')`
+   * THROWS. Unguarded, that exception escapes the fetch handler and Cloudflare
+   * serves its own 1101 error page: no lead, and nothing that looks like this
+   * endpoint's contract. An unparseable Origin takes a decided branch instead.
+   */
   const origin = request.headers.get('Origin');
-  if (origin && new URL(origin).host !== new URL(request.url).host) {
-    return fail(403, 'Cross-origin submissions are not accepted.');
+  if (origin) {
+    let originHost = null;
+    try {
+      originHost = new URL(origin).host;
+    } catch {
+      originHost = null;
+    }
+    if (originHost !== new URL(request.url).host) {
+      return fail(403, 'Cross-origin submissions are not accepted.');
+    }
   }
 
   const body = await readBody(request);
@@ -401,6 +427,18 @@ export async function handleContact(request, env, ctx) {
     );
   }
   if (HONEYPOT_USABLE && String(body[HONEYPOT_FIELD] ?? '').trim()) {
+    // The ONLY branch that answers success without sending mail — both pages
+    // show their thank-you state and fire generate_lead on it. Leave a trace,
+    // or a form-fill extension writing a real visitor's fax number into the
+    // hidden field is indistinguishable from bot noise and silently costs a
+    // lead, which is the failure this whole endpoint is written to avoid.
+    console.log(
+      'contact: honeypot tripped — source=%s name=%s email=%s phone=%s',
+      sourceLabel(String(body.source ?? '')),
+      body.name ? 'y' : 'n',
+      body.email ? 'y' : 'n',
+      body.phone ? 'y' : 'n',
+    );
     return wantsJson
       ? json(202, { ok: true })
       : Response.redirect(new URL('/thank-you', request.url).toString(), 303);
