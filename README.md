@@ -377,8 +377,13 @@ site, for a favicon. Worth regenerating.
   live DOM. The full class name was truncated in the DOM read so the breakpoint
   it hides at is unknown; the section does render in page source, so it is built
   visible here. Confirm against client intent.
-- **No infrastructure.** No GitHub org, no repo, no Railway service, no DNS, no
-  image store. Nothing outside this folder was touched and the live site is
-  unmodified.
+- **Infrastructure, as of 2026-09-04.** This bullet used to read "no
+  infrastructure"; that has not been true for some time. What exists: a GitHub
+  repo, the Cloudflare Worker `staging-lp-rexdalemobilewash` with
+  `RESEND_API_KEY` set as a Worker secret, DNS for `rexdalemobilewash.ca` on
+  Cloudflare (zone active, 28 records plus the three Resend ones), and Resend
+  sending verified on both `brandingcentres.com` and `rexdalemobilewash.ca`.
+  What still does not: an image store — images are still hotlinked to the old
+  WordPress site, see **Images** above.
 - **No day-2 procedure exists** anywhere in the toolchain for shipping a change
   to a live site. Flag at handover.
