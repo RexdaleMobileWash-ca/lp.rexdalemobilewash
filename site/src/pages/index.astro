@@ -71,21 +71,35 @@ const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
       ]}
     />
 
-    <ServiceSection
-      id="de-icing"
-      eid="0ed65bb"
-      title="Premium De-Icing Services"
-      image={`${BASE}/De-Icing-Photo.jpg`}
-      alt="De-Icing Services Rexdale Mobile Wash"
-      tone="dark"
-      mediaFirst={true}
-      body="Ensure your property remains safe and fully operational throughout the freezing winter months. Our proactive ice management prevents dangerous buildup, protecting your visitors and your bottom line from winter hazards."
-      bullets={[
-        'Minimize slip-and-fall risks for pedestrians and vehicles.',
-        'Immediate treatment as temperatures drop to prevent ice bonding.',
-        'Professional-grade products that reduce damage to concrete and asphalt.',
-      ]}
-    />
+    {/*
+      "Premium De-Icing Services" — Elementor #0ed65bb — is switched OFF on the
+      live site. Its container carries
+        elementor-hidden-desktop elementor-hidden-tablet elementor-hidden-mobile
+      which is every breakpoint, so no visitor has ever seen it; the page runs
+      Storefront Pressure Washing straight into Why Choose Rexdale Mobile Wash.
+      The port rendered it, adding a whole extra service block (~740px on a
+      phone) that the original does not have.
+
+      The copy and the photo are kept here, commented out, so switching the
+      section back on is a matter of deleting these two comment markers — that
+      is the client's call, not the clone's.
+
+      <ServiceSection
+        id="de-icing"
+        eid="0ed65bb"
+        title="Premium De-Icing Services"
+        image={`${BASE}/De-Icing-Photo.jpg`}
+        alt="De-Icing Services Rexdale Mobile Wash"
+        tone="dark"
+        mediaFirst={true}
+        body="Ensure your property remains safe and fully operational throughout the freezing winter months. Our proactive ice management prevents dangerous buildup, protecting your visitors and your bottom line from winter hazards."
+        bullets={[
+          'Minimize slip-and-fall risks for pedestrians and vehicles.',
+          'Immediate treatment as temperatures drop to prevent ice bonding.',
+          'Professional-grade products that reduce damage to concrete and asphalt.',
+        ]}
+      />
+    */}
 
     <WhyUs />
     <About />

@@ -147,7 +147,10 @@ const {
         font-family: var(--f-body);
         font-size: 16px;
         font-weight: 400;
-        line-height: 1.6;
+        /* The kit is 1.5 — every paragraph and list item on the live page
+           computes to line-height:24px at 16px. 1.6 put 1.6px under every
+           line, which compounded to ~200px of extra page height on mobile. */
+        line-height: 1.5;
         -webkit-font-smoothing: antialiased;
       }
 
@@ -207,11 +210,17 @@ const {
       .btn {
         display: inline-block;
         font-family: var(--f-head);
+        /* 15px/1 with a 3px radius, measured on the live button at 390 and at
+           1440 alike — it is not a breakpoint value. Inheriting the body's
+           16px made every "Request Quote" a touch wide, and the missing
+           radius squared off corners the original rounds. */
+        font-size: 15px;
         font-weight: 500;
         line-height: 1;
         padding: 12px 24px;
         border-style: solid;
         border-width: 2px;
+        border-radius: 3px;
         text-decoration: none;
         cursor: pointer;
         transition: background-color 0.3s, color 0.3s, border-color 0.3s;
@@ -244,10 +253,14 @@ const {
       /* ---- section heading — 40px / 30px <=1024 / 25px <=767 ----
          #8bfb878 #42c1401 #b26c734 #375999f #1c94902 #1c638bc3 #1512754e
          #fa7a65e #6e0980b4 all share these exact values. */
+      /* Elementor heading widgets are line-height:1 unless a breakpoint says
+         otherwise, and only <=767 does (1.3em). Letting these inherit the
+         body's leading made every section heading ~20px too tall from 768 up. */
       .h-sec {
         font-family: var(--f-head);
         font-size: 40px;
         font-weight: 600;
+        line-height: 1;
         color: var(--c-blue);
         margin: 0 0 0.4em;
       }
@@ -280,20 +293,36 @@ const {
         font-weight: 400;
       }
 
+      /* The live list centres the icon against the whole item, so on a
+         two-line bullet the check sits beside the middle of the text, not
+         beside the first line. */
       .ticks li {
         display: flex;
-        align-items: flex-start;
-        gap: 10px;
+        align-items: center;
         padding-block-end: 2.5px;
         margin-block-start: 2.5px;
       }
 
+      /* Elementor drops the half-gap at the two ends of the list */
+      .ticks li:first-child {
+        margin-block-start: 0;
+      }
+
+      .ticks li:last-child {
+        padding-block-end: 0;
+      }
+
+      /* icon 20px + 5px margin, then 5px of text padding — the live spacing */
       .ticks svg {
         flex: 0 0 auto;
         width: 20px;
         height: 20px;
-        margin-top: 2px;
+        margin-right: 5px;
         transition: fill 0.3s;
+      }
+
+      .ticks li > span {
+        padding-left: 5px;
       }
 
       .visually-hidden {

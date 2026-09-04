@@ -7,10 +7,12 @@ const LOGO =
 <header class="hdr">
   <!-- #28402046 : row, align center, bg #FFFFFF, content-width 1400px -->
   <div class="hdr__inner">
-    <!-- #4b38bd4e : width 75% (50% <=767), padding 10px (reduced to 6px) -->
+    <!-- #4b38bd4e : width 75% (50% <=767), padding 10px -->
     <div class="hdr__brand">
       <!-- #15be2f65 : text-align start. Original img width 18% / 16% <=1024 /
-           38% <=767; reduced here to shrink the logo and the header band. -->
+           38% <=767. The mobile 38% is restored: it makes the logo 67px and
+           the header band 87px, as on the live site. Desktop is still capped
+           below the original 18% by the max-width below. -->
       <a href="https://www.rexdalemobilewash.ca/">
         <img src={LOGO} alt="Rexdale Mobile Wash - Logo" width="200" height="200" />
       </a>
@@ -20,7 +22,7 @@ const LOGO =
     <div class="hdr__cta">
       <!-- #3ecf2179 : bg #164E83, Montserrat 500, #FFF, padding 5px 15px, hover #376898 -->
       <a href="tel:4162446497" class="hdr__btn">
-        Contact Us<br />(416) 244-6497
+        <span class="hdr__btn-lead">Contact Us</span><br />(416) 244-6497
       </a>
     </div>
   </div>
@@ -76,12 +78,21 @@ const LOGO =
     font-family: var(--f-body);
     font-weight: 500;
     font-size: 15px;
-    line-height: 1.3;
+    /* The live button is two differently-sized lines: an inline
+         <span style="font-size:12px;line-height:1.5em">Contact Us</span>
+       over the number at the button's own 15px/1. That is what makes it
+       43px tall rather than 49px. */
+    line-height: 1;
     text-align: center;
     text-decoration: none;
     padding: 5px 15px;
     border-radius: 3px;
     transition: background-color 0.3s;
+  }
+
+  .hdr__btn-lead {
+    font-size: 12px;
+    line-height: 1.5em;
   }
 
   .hdr__btn:hover,
@@ -100,8 +111,14 @@ const LOGO =
     .hdr__cta {
       width: 50%;
     }
+    /* 10px padding around a 38%-wide logo gives the live 67px mark and an
+       87px band. Left at 6px above 767 so the desktop header, which is
+       already capped smaller than the original by design, does not move. */
+    .hdr__brand {
+      padding: 10px;
+    }
     .hdr__brand img {
-      width: 32%;
+      width: 38%;
     }
   }
 </style>

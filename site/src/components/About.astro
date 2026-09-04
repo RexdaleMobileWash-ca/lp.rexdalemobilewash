@@ -62,15 +62,26 @@ const BG =
     opacity: 0.85;
   }
 
+  /* Each widget in #211548f2 is padded 10px and the column spaces them 20px
+     apart — without the inset the copy ran the full 370px on a phone where
+     the original holds 350px. */
   .about__inner {
     width: 100%;
     max-width: var(--wrap-max);
     margin-inline: auto;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    row-gap: 20px;
+    padding: 10px;
   }
 
+  /* #1c638bc3 sets line-height 1em on this heading, unlike the page's other
+     h2s, which run 1.3em at <=767. */
   .about__title {
     text-align: center;
+    line-height: 1em;
+    margin: 0;
   }
 
   .about__body {
@@ -78,7 +89,7 @@ const BG =
     font-size: 16px;
     font-weight: 400;
     color: #fff;
-    margin: 0 0 1.5em;
+    margin: 0 0 0.9rem;
   }
 
   .about__cta {

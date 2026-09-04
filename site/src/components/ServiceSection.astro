@@ -11,9 +11,13 @@
  *   image frame shadow 8px -8px 0 10px #DFEBFF
  *
  * Media column is 40%, copy column 60% at >=768px; 50/50 in the 768-1024
- * band; stacked below that. On dark sections the copy column carries
- * --order:-99999 so the text leads.
+ * band; stacked below that. The dark sections put the copy first in source
+ * order so the text leads on desktop, and their media column carries
+ * --order:-99999 at <=767px so the photo leads on a phone — every block on
+ * the live site opens with its image at mobile.
  */
+import { icons } from '../icons';
+
 interface Props {
   id: string;
   eid: string;
@@ -38,12 +42,35 @@ const {
   bullets,
   note,
 } = Astro.props;
+
+/**
+ * WordPress generates 300 / 768 / 1024 / full variants of each of these
+ * photos and the live page ships them all as a srcset. Hotlinking only the
+ * 1141px original made a phone download the full file to paint a 315px box —
+ * and resample from a different source than the live site does.
+ */
+const stem = image.replace(/\.webp$/, '');
+const srcset = image.endsWith('.webp')
+  ? [
+      `${stem}-300x220.webp 300w`,
+      `${stem}-768x563.webp 768w`,
+      `${stem}-1024x751.webp 1024w`,
+      `${image} 1141w`,
+    ].join(', ')
+  : undefined;
 ---
 
 <section class={`svc svc--${tone}`} id={id} data-eid={eid}>
   <div class="svc__inner">
     <div class={`svc__media ${mediaFirst ? '' : 'svc__media--last'}`}>
-      <img src={image} alt={alt} loading="lazy" decoding="async" />
+      <img
+        src={image}
+        srcset={srcset}
+        sizes="(max-width: 1141px) 100vw, 1141px"
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+      />
     </div>
 
     <div class="svc__copy">
@@ -54,8 +81,10 @@ const {
         {
           bullets.map((b) => (
             <li>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z" />
+              {/* fa-check-circle, as on the live list — a filled disc with a
+                  knocked-out tick, not a bare check mark */}
+              <svg viewBox={icons.checkCircle.vb} aria-hidden="true">
+                <path d={icons.checkCircle.d} />
               </svg>
               <span>{b}</span>
             </li>
@@ -100,14 +129,37 @@ const {
     padding: 10px;
   }
 
+  /* Elementor spaces the widgets in this column a uniform 20px apart; the
+     port used each widget's own bottom margin instead, which came out
+     10/16/20/20 and left every service block short. */
   .svc__copy {
     width: 100%;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    row-gap: 20px;
   }
 
-  /* img width:90% plus the offset frame shadow */
+  .svc__copy > * {
+    width: 100%;
+  }
+
+  .svc__copy > .btn {
+    width: auto;
+  }
+
+  .svc__copy .h-sec,
+  .svc__copy .ticks {
+    margin: 0;
+  }
+
+  /* img width:90%, centred in its column, plus the offset frame shadow.
+     The live image widget is centre-aligned at every width — left-aligning it
+     put the frame hard against the section padding on a phone. */
   .svc__media img {
     width: 90%;
+    margin-inline: auto;
   }
 
   .svc--light .svc__media img {
@@ -118,17 +170,19 @@ const {
     box-shadow: 8px -8px 0 10px var(--c-frame-pale);
   }
 
+  /* 0.9em is the theme's paragraph margin — it sits inside the widget, on top
+     of the 20px the column already puts between widgets. */
   .svc__body {
     font-family: var(--f-body);
     font-size: 16px;
     font-weight: 400;
-    margin: 0 0 1em;
+    margin: 0 0 0.9rem;
   }
 
   .svc__note {
     font-style: italic;
     font-weight: 700;
-    margin: 0 0 1.25em;
+    margin: 0 0 0.9rem;
   }
 
   .svc--light .svc__body,
@@ -189,9 +243,23 @@ const {
     .svc__note {
       text-align: center;
     }
-    /* --order:-99999 on the copy column at mobile */
-    .svc__copy {
+
+    /* Every service block leads with its image at mobile.
+       post-110.css carries `--order:-99999` in its (max-width:767px) block on
+       #5f04353 and #7c20b1e — and both of those are MEDIA columns, not copy
+       columns: #5f04353 is the second child of the graffiti section #d6ce5d3,
+       whose desktop layout is copy-left / image-right, so the hack pulls the
+       image up on a phone. The light sections already have the media first in
+       source order and carry no hack at all.
+       The port had it inverted (`.svc__copy{order:-1}`), which pushed all
+       three photos to the bottom of their block. */
+    .svc__media--last {
       order: -1;
+    }
+
+    /* The button widget is centre-aligned at <=767 and left-aligned above it */
+    .svc__copy {
+      align-items: center;
     }
   }
 </style>

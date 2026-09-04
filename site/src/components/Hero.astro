@@ -111,8 +111,15 @@ const slides = [
     flex-wrap: wrap;
   }
 
+  /* #dae89b8 is padded 10px and stacks its two widgets 20px apart at every
+     width — without the padding the headline ran the full 370px on mobile
+     instead of the original's 350px. */
   .hero__copy {
     width: 70%;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 20px;
   }
 
   .hero__copy h1 {
@@ -122,7 +129,7 @@ const slides = [
     line-height: 1.3em;
     color: var(--c-blue-pale);
     text-shadow: 2px 2px 10px #000;
-    margin: 0 0 0.4em;
+    margin: 0;
   }
 
   .hero__sub {
@@ -149,7 +156,8 @@ const slides = [
     line-height: 1.1em;
     color: #fff;
     text-align: center;
-    margin: 0 0 15px;
+    /* 20px of widget spacing between the panel title and the form */
+    margin: 0 0 20px;
   }
 
   /* Desktop only — scoped above the 1024 breakpoint so the stacked mobile
@@ -181,7 +189,8 @@ const slides = [
     .hero__inner {
       width: 100vw;
       justify-content: center;
-      gap: 24px;
+      /* 20px of widget spacing, as everywhere else on the page */
+      gap: 20px;
     }
     .hero__copy {
       width: 100%;
