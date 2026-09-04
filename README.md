@@ -8,8 +8,9 @@ comment beside the block it came from.
 ## Status
 
 **Builds clean.** 4 pages, zero errors, zero warnings. `site/dist/` is build
-output and is not committed — `.gitignore` excludes it, and Railway builds from
-source.
+output and is not committed — `.gitignore` excludes it. There is no CI: pushing
+to `main` deploys nothing, and the Worker keeps serving its last uploaded bundle
+until someone runs `npx wrangler deploy` by hand (see **Staging** below).
 
 ```bash
 cd site
@@ -81,20 +82,34 @@ pixels differing — all of it WebP re-encode noise, none by more than a hair.
 To regenerate after a new design export, redo the port; there is no build step
 that reads the export at build time.
 
-### Before this page goes live
+### The quote forms
 
-**The quote forms are not connected.** The design posts to Web3Forms; no access
-key was supplied. `ACCESS_KEY` at the top of the page's inline script is empty,
-and while it is empty a submission is refused in the browser with a visible
-"not connected yet, please call" message rather than posting a real enquiry into
-a void — the same posture as `EstimateForm.astro`. Paste the key there and both
-forms switch on; nothing else needs to change. Until then the page's only
-working conversion path is the phone number.
+Both quote forms on this page (the hero one and the closing CTA) post to
+**`POST /api/contact`** — the same Worker route the estimate forms use, sent
+through Resend. See [The contact form](#the-contact-form) below.
+
+They were previously wired to Web3Forms with an empty access key, which meant
+they were not connected at all: a submission was refused in the browser and the
+visitor told to call. Web3Forms is gone from the page — no access key, no
+`subject` hidden field, no `botcheck`.
+
+Two things to know if you edit these forms:
+
+- **`company` is a real, required field here** (the enquirer's company name),
+  which is why the Worker's honeypot is `fax` and not `company`. Naming a real
+  field after the honeypot makes every submission look like a bot, and the
+  Worker answers bots `202` — so the form would look like it worked while every
+  lead was discarded. Check any new field name against `HONEYPOT_FIELD` in
+  `site/worker/contact.js`.
+- Each form posts a hidden **`source`** (`pressure-washing-hero` /
+  `pressure-washing-final`) so the notification email says which form produced
+  the lead. The Worker maps it through an allowlist, so a new form needs an
+  entry in `SOURCES` or it shows as the generic "Website form".
 
 The page uses the same GTM container as the rest of the build
-(`GTM-NMTLRJ63`), and pushes `generate_lead` to the dataLayer only after
-Web3Forms confirms a success — not on click, which would count abandoned and
-failed submissions as conversions.
+(`GTM-NMTLRJ63`), and pushes `generate_lead` to the dataLayer only after the
+Worker confirms the notification was accepted — not on click, which would count
+abandoned and failed submissions as conversions.
 
 ## Staging
 
@@ -167,8 +182,20 @@ loads at all. Only the two families that do visible work are requested.
 
 ## The contact form
 
-Both estimate forms (hero and closing CTA) post to **`POST /api/contact`**,
-handled at request time by `site/worker/contact.js` and sent through Resend.
+**All four forms** post to **`POST /api/contact`**, handled at request time by
+`site/worker/contact.js` and sent through Resend:
+
+| Form | `source` value |
+|---|---|
+| `/` hero estimate form | `hero` |
+| `/` closing CTA estimate form | `cta` |
+| `/pressure-washing/` hero quote form | `pressure-washing-hero` |
+| `/pressure-washing/` closing quote form | `pressure-washing-final` |
+
+The two pages do not collect the same fields — the commercial page asks for
+company and property type and never asks for a city — so everything except
+name, email and phone is optional at the Worker. A partly filled lead is still
+a lead.
 
 The route lives in the Worker, not in `src/pages`. The build is
 `output: 'static'`, so a route under `src/pages` would be prerendered to a file
@@ -213,9 +240,13 @@ build runs and absent when the route executes: the build passes and the form
 
 ### Abuse protection, and what is actually protecting it
 
-- **Honeypot** — a hidden `company` field. Anything that arrives filled in is a
+- **Honeypot** — a hidden `fax` field. Anything that arrives filled in is a
   bot, and gets a `202` rather than an error, because telling a bot it failed
   only makes it retry. This stops more real-world form spam than the rate limit.
+  It is `fax` and **not** `company` because `company` is a real required field
+  on the `/pressure-washing/` quote forms; `fax` is filled by blind form-filling
+  bots and is not an autofill token any browser recognises, so it cannot be
+  populated on a real visitor's behalf. Check new field names against it.
 - **Rate limit** — 8/min per IP via the Workers rate limiting binding. Know what
   this is: it is counted **per data centre** and is documented as "permissive,
   eventually consistent, and intentionally designed to not be used as an
@@ -257,8 +288,10 @@ Elementor `e-gallery` — CSS background-images injected by JavaScript, invisibl
 to crawlers and screen readers. Now nine `<img>` elements with alt text.
 
 *(The third departure — forms that did not submit — is resolved; see **The
-contact form** above. Field names are unchanged: name, email, phone, city,
-message.)*
+contact form** above. The Elementor field names are unchanged: name, email,
+phone, city, message. The Worker also accepts company and property_type, which
+only the `/pressure-washing/` forms send, plus a hidden `source` and the `fax`
+honeypot.)*
 
 ## Images
 

@@ -610,26 +610,28 @@ const FAQ_LD = {
             <div>
               <h2 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h2>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
-              <form data-submit="submitHero" novalidate style="display:grid;gap:14px">
-                <input type="hidden" name="access_key" value="">
-                <input type="hidden" name="subject" value="Quote request — Rexdale LP (hero form)">
-                <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
+              <form data-submit="submitHero" method="POST" action="/api/contact" novalidate style="display:grid;gap:14px">
+                <input type="hidden" name="source" value="pressure-washing-hero">
+                <div aria-hidden="true" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0">
+                  <label for="pw-hero-fax">Fax</label>
+                  <input id="pw-hero-fax" type="text" name="fax" tabindex="-1" autocomplete="off">
+                </div>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Full Name *</span>
-                  <input type="text" name="name" required autocomplete="name" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                  <input type="text" name="name" maxlength="120" required autocomplete="name" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                 </label>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Company *</span>
-                  <input type="text" name="company" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                  <input type="text" name="company" maxlength="160" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                 </label>
                 <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))">
                   <label style="display:block;min-width:0">
                     <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Phone *</span>
-                    <input type="tel" name="phone" required autocomplete="tel" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                    <input type="tel" name="phone" maxlength="60" required autocomplete="tel" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                   </label>
                   <label style="display:block;min-width:0">
                     <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Email *</span>
-                    <input type="email" name="email" required autocomplete="email" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                    <input type="email" name="email" maxlength="200" required autocomplete="email" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                   </label>
                 </div>
                 <label style="display:block">
@@ -646,7 +648,7 @@ const FAQ_LD = {
                 </label>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">What needs cleaning?</span>
-                  <textarea name="message" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
+                  <textarea name="message" maxlength="4000" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
                 </label>
                 <div role="alert" style="display:none;background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013"></div>
                 <button type="submit" style="width:100%;background:#0A4C8A;color:#FFFFFF;font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:18px;padding:17px 20px;border:0;border-radius:2px;min-height:56px;cursor:pointer" class="h4">
@@ -1106,26 +1108,28 @@ const FAQ_LD = {
             <div>
               <h3 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h3>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
-              <form data-submit="submitFinal" novalidate style="display:grid;gap:14px">
-                <input type="hidden" name="access_key" value="">
-                <input type="hidden" name="subject" value="Quote request — Rexdale LP (final CTA form)">
-                <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
+              <form data-submit="submitFinal" method="POST" action="/api/contact" novalidate style="display:grid;gap:14px">
+                <input type="hidden" name="source" value="pressure-washing-final">
+                <div aria-hidden="true" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0">
+                  <label for="pw-final-fax">Fax</label>
+                  <input id="pw-final-fax" type="text" name="fax" tabindex="-1" autocomplete="off">
+                </div>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Full Name *</span>
-                  <input type="text" name="name" required autocomplete="name" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                  <input type="text" name="name" maxlength="120" required autocomplete="name" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                 </label>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Company *</span>
-                  <input type="text" name="company" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                  <input type="text" name="company" maxlength="160" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                 </label>
                 <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))">
                   <label style="display:block;min-width:0">
                     <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Phone *</span>
-                    <input type="tel" name="phone" required autocomplete="tel" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                    <input type="tel" name="phone" maxlength="60" required autocomplete="tel" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                   </label>
                   <label style="display:block;min-width:0">
                     <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Email *</span>
-                    <input type="email" name="email" required autocomplete="email" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                    <input type="email" name="email" maxlength="200" required autocomplete="email" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                   </label>
                 </div>
                 <label style="display:block">
@@ -1142,7 +1146,7 @@ const FAQ_LD = {
                 </label>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">What needs cleaning?</span>
-                  <textarea name="message" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
+                  <textarea name="message" maxlength="4000" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
                 </label>
                 <div role="alert" style="display:none;background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013"></div>
                 <button type="submit" style="width:100%;background:#0A4C8A;color:#FFFFFF;font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:18px;padding:17px 20px;border:0;border-radius:2px;min-height:56px;cursor:pointer" class="h4">
@@ -1191,19 +1195,19 @@ const FAQ_LD = {
     <script is:inline>
       (function () {
         /* ------------------------------------------------------------------
-           Web3Forms access key. Empty means the forms are NOT connected: a
-           submission is refused in the browser and the visitor is told to
-           call, rather than posting a real enquiry into a void. Paste the key
-           here to switch both forms on — nothing else needs to change.
+           Both quote forms post to POST /api/contact — the same Worker route
+           the estimate forms on / use, which sends through Resend. They used
+           to post to Web3Forms with an empty access key, which meant they were
+           not connected at all.
+
+           The forms carry method/action too, so a visitor with no JavaScript
+           gets a plain POST and a 303 to /thank-you. This script only upgrades
+           that to a fetch, which is what keeps the in-page success panel and
+           the error message beside the button.
            ------------------------------------------------------------------ */
-        var ACCESS_KEY = '';
+        var ENDPOINT = '/api/contact';
 
         var PHONE = "1 (416) 244-6497";
-
-        Array.prototype.forEach.call(
-          document.querySelectorAll('input[name="access_key"]'),
-          function (input) { input.value = ACCESS_KEY; }
-        );
 
         /* ---- FAQ accordion ---- */
         Array.prototype.forEach.call(
@@ -1302,32 +1306,31 @@ const FAQ_LD = {
               if (!form.reportValidity()) return;
               if (alertBox) alertBox.style.display = 'none';
 
-              if (!ACCESS_KEY) {
-                fail('This form is not connected yet.');
-                return;
-              }
-
               busy(true);
               var data = {};
               new FormData(form).forEach(function (value, key) { data[key] = value; });
 
-              fetch('https://api.web3forms.com/submit', {
+              fetch(form.getAttribute('action') || ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                 body: JSON.stringify(data)
               })
                 .then(function (r) {
-                  return r.json().then(function (j) {
-                    return { ok: r.ok && j.success !== false, body: j };
-                  });
+                  return r
+                    .json()
+                    .catch(function () { return {}; })
+                    .then(function (j) { return { ok: r.ok, body: j }; });
                 })
                 .then(function (res) {
                   if (!res.ok) {
-                    throw new Error((res.body && res.body.message) || 'Submission was rejected.');
+                    /* The Worker answers {ok:false, error:"…"} — a sentence
+                       already written for a visitor to read. */
+                    throw new Error((res.body && res.body.error) || 'Submission was rejected.');
                   }
-                  /* generate_lead fires only after Web3Forms confirms success —
-                     firing it on click would inflate conversions with abandoned
-                     and failed submissions. */
+                  /* generate_lead fires only after the Worker confirms the
+                     notification was accepted — firing it on click would
+                     inflate conversions with abandoned and failed
+                     submissions. */
                   window.dataLayer = window.dataLayer || [];
                   window.dataLayer.push({ event: 'generate_lead' });
                   busy(false);

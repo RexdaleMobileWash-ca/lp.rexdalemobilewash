@@ -87,19 +87,23 @@ const ENDPOINT = '/api/contact';
   </div>
 
   {/*
+    Which form this is. The worker prints it on the notification so whoever
+    answers dispatch@ can tell a home-page enquiry from a paid-landing-page one.
+  */}
+  <input type="hidden" name="source" value={id === 'cta' ? 'cta' : 'hero'} />
+
+  {/*
     Honeypot. Hidden from people and from screen readers, so anything that
     arrives filled in is a bot. The worker answers those 202 rather than an
     error — telling a bot it failed only makes it retry.
+
+    The field is 'fax', not 'company': the /pressure-washing/ quote forms post
+    to the same endpoint and ask for a real company name. Keep the two names
+    apart or those leads get silently swallowed as bot traffic.
   */}
   <div class="ef__hp" aria-hidden="true">
-    <label for={`${id}-company`}>Company</label>
-    <input
-      id={`${id}-company`}
-      name="company"
-      type="text"
-      tabindex="-1"
-      autocomplete="off"
-    />
+    <label for={`${id}-fax`}>Fax</label>
+    <input id={`${id}-fax`} name="fax" type="text" tabindex="-1" autocomplete="off" />
   </div>
 
   <div class="ef__row">
