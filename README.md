@@ -267,9 +267,24 @@ cd site
 CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
 ```
 
-Resend key name `lp.rexdalemobilewash.ca`, scoped to *sending access on
-brandingcentres.com only*. Rotate by creating a new key in Resend and re-running
-the command above.
+Resend key name `lp.rexdalemobilewash.ca worker`, **sending access, not scoped to
+a single domain**. Rotate by creating a new key in Resend and re-running the
+command above.
+
+**Two things learned the hard way here, both of which cost a broken form:**
+
+1. **Test the token before you install it.** A key created with Resend's
+   per-domain scope (`domainId`) came back with a token that answered `401 API
+   key is invalid` on every request, against *any* domain — so it was the
+   credential, not the scope. Installing it blind overwrote the working secret,
+   and since a Resend token is shown exactly once, the old one was
+   unrecoverable. Curl the token against `https://api.resend.com/emails` first;
+   only then `wrangler secret put`.
+2. **A deploy is not instant.** A test run seconds after `wrangler deploy` hit an
+   edge still serving the previous version and produced a confident, wrong
+   conclusion about the code. Read the deployed bundle back
+   (`GET /accounts/{acct}/workers/scripts/{name}`) and grep it for something the
+   change introduced before trusting any post-deploy test.
 
 **Do not add it as a Build variable.** A build variable is present while the
 build runs and absent when the route executes: the build passes and the form

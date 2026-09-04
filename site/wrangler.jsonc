@@ -43,17 +43,7 @@
   // by their business email.
   "vars": {
     "SITE_NAME": "Rexdale Mobile Wash",
-    // PENDING FLIP — this is the OLD shared domain, on purpose.
-    //
-    // The intended value is "Rexdale Mobile Wash <forms@rexdalemobilewash.ca>".
-    // rexdalemobilewash.ca is set up in Resend and its DNS is published and
-    // byte-exact, but Resend still reports the domain `pending`, and a From on
-    // an unverified domain makes every send 403 — the form would 502 for every
-    // visitor. So the deployed value stays on the verified shared domain until
-    // verification lands, at which point this one line changes and redeploys.
-    // Everything else in this file and in worker/contact.js already describes
-    // the new arrangement.
-    "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
+    "CONTACT_FROM": "Rexdale Mobile Wash <forms@rexdalemobilewash.ca>",
     "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
     "CONTACT_CC": "Paolo@tboxstudio.com",
     "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
