@@ -55,12 +55,19 @@ preserves it.
 
 ## Staging vs live
 
-- Staging: `https://staging-lp-rexdalemobilewash.ash-47a.workers.dev`
-  (Worker `staging-lp-rexdalemobilewash`, sends `X-Robots-Tag: noindex, nofollow`)
+- Staging: `https://staging.lp.rexdalemobilewash.ca` — Worker Custom Domain on
+  `staging-lp-rexdalemobilewash`, sends `X-Robots-Tag: noindex, nofollow`.
+  Also still served on `https://staging-lp-rexdalemobilewash.ash-47a.workers.dev`.
 - Public: `https://lp.rexdalemobilewash.ca` — still the **old WordPress /
-  Elementor site**. The Astro build is not public yet; the domain move is
-  gate 6 (`wp-10-confirm-dns-is-ours`) and is blocked on the client's
-  Microsoft 365 mail records.
+  Elementor site** (verified by `wp-content`/`elementor` in the served HTML).
+  The Astro build is not public yet; pointing this hostname at the Worker is
+  gate 13 (`wp-17-point-domain-at-new-site`).
+
+`rexdalemobilewash.ca` is now on Cloudflare nameservers (`dee`/`josh.ns.cloudflare.com`,
+zone activated 2026-09-04), moved off GoDaddy's `ns69`/`ns70.domaincontrol.com`.
+The Microsoft 365 mail records (apex MX to `rexdalemobilewash-ca.mail.protection.outlook.com`,
+`autodiscover`, the Lync/Teams SRV pair, the `NETORG…onmicrosoft.com` TXT) came
+across with it — leave them alone.
 
 A change deployed to staging reaches no real visitors.
 

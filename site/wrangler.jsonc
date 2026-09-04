@@ -18,12 +18,20 @@
     "run_worker_first": true
   },
 
-  // Staging is served on the workers.dev URL only. A custom domain
-  // (staging.lp.rexdalemobilewash.ca) cannot work while rexdalemobilewash.ca
-  // is on GoDaddy nameservers: Cloudflare is not authoritative, and the zone is
-  // 'full' on a Free plan so CNAME setup is not an option either. Adding a
-  // "routes" entry here would also switch workers.dev off unless
-  // workers_dev is set explicitly alongside it.
+  // Staging is reachable on two hostnames:
+  //   - staging-lp-rexdalemobilewash.ash-47a.workers.dev  (workers_dev, below)
+  //   - staging.lp.rexdalemobilewash.ca                   (Worker Custom Domain)
+  //
+  // The custom domain became possible once rexdalemobilewash.ca moved off the
+  // GoDaddy nameservers (ns69/ns70.domaincontrol.com) onto Cloudflare's
+  // dee/josh.ns.cloudflare.com — Cloudflare is now authoritative for the zone.
+  // It is attached at the account level (Workers > Domains & Routes), not
+  // declared here: that is what provisions the edge certificate for a
+  // third-level hostname, which Universal SSL (apex + one label) does not
+  // cover. `wrangler deploy` leaves it in place.
+  //
+  // Do NOT add a "routes" entry for it without keeping workers_dev set
+  // explicitly alongside — a "routes" entry switches the workers.dev URL off.
   "workers_dev": true,
 
   // Contact-form addressing. Non-secret on purpose — these are the values worth
