@@ -596,7 +596,18 @@ export async function handleContact(request, env, ctx) {
   // gets a custom domain.
   if (env.CONTACT_RATE_LIMIT) {
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-    const { success } = await env.CONTACT_RATE_LIMIT.limit({ key: ip });
+    // Guarded like every other call on this path. The binding only exists on the
+    // deployed Worker, so a rejection here cannot show up in local testing — and
+    // unguarded it would escape into Cloudflare's 1101 page and cost the lead.
+    // Fail OPEN, matching the posture stated for the honeypot above: a spam
+    // brake that breaks must not take the form down with it.
+    let success = true;
+    try {
+      ({ success } = await env.CONTACT_RATE_LIMIT.limit({ key: ip }));
+    } catch (err) {
+      console.error('contact: rate limiter unavailable, allowing —', err.message);
+      success = true;
+    }
     if (!success) {
       return fail(
         429,

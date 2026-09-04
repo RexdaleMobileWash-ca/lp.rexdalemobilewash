@@ -18,12 +18,14 @@
     "run_worker_first": true
   },
 
-  // Staging is served on the workers.dev URL only. A custom domain
-  // (staging.lp.rexdalemobilewash.ca) cannot work while rexdalemobilewash.ca
-  // is on GoDaddy nameservers: Cloudflare is not authoritative, and the zone is
-  // 'full' on a Free plan so CNAME setup is not an option either. Adding a
-  // "routes" entry here would also switch workers.dev off unless
-  // workers_dev is set explicitly alongside it.
+  // Staging is served on the workers.dev URL only.
+  //
+  // The old reason for that — rexdalemobilewash.ca sitting on GoDaddy
+  // nameservers, so Cloudflare was not authoritative — NO LONGER HOLDS. As of
+  // 2026-09-04 the zone is on dee/josh.ns.cloudflare.com and active, so a custom
+  // hostname is now possible; not attaching one is a migration decision, not a
+  // technical block. Adding a "routes" entry here would still switch workers.dev
+  // off unless workers_dev is set explicitly alongside it.
   "workers_dev": true,
 
   // Contact-form addressing. Non-secret on purpose — these are the values worth
@@ -55,7 +57,8 @@
   // form 500s in production.
 
   // Per-IP rate limit on the form. A public form with no limit is a spam relay,
-  // and the sending reputation it would burn is the shared domain's. `period`
+  // and since CONTACT_FROM moved, the sending reputation it would burn is the
+  // client's OWN business domain, not a shared one. `period`
   // accepts only 10 or 60.
   "ratelimits": [
     {
