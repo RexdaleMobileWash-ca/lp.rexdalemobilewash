@@ -1301,12 +1301,21 @@ const FAQ_LD = {
               var listed = fieldErrors
                 ? Object.keys(fieldErrors).map(function (k) { return fieldErrors[k]; })
                 : [];
-              alertBox.textContent = listed.length
+              var text = listed.length
                 ? listed.join(' ')
                 : message +
                   " Your request didn't go through — please call " + PHONE +
                   " and we'll take the details over the phone.";
+              /* Reveal BEFORE writing. A live region that is display:none at
+                 the moment its contents change is not in the accessibility
+                 tree then, so nothing is announced. */
+              alertBox.textContent = '';
               alertBox.style.display = 'block';
+              if (window.requestAnimationFrame) {
+                requestAnimationFrame(function () { alertBox.textContent = text; });
+              } else {
+                alertBox.textContent = text;
+              }
             }
 
             form.addEventListener('submit', function (e) {
@@ -1337,6 +1346,7 @@ const FAQ_LD = {
                     var err = new Error(
                       (res.body && res.body.error) || 'Submission was rejected.'
                     );
+                    err.userFacing = true;
                     err.fieldErrors = res.body && res.body.errors;
                     throw err;
                   }
@@ -1349,12 +1359,29 @@ const FAQ_LD = {
                   busy(false);
                   if (formPane) formPane.hidden = true;
                   if (donePane) donePane.hidden = false;
-                  if (donePane && donePane.scrollIntoView) {
-                    donePane.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                  /* Scroll the panel INSIDE donePane, not donePane itself: the
+                     pane is display:contents, so it generates no box, and
+                     scrollIntoView on a boxless element returns early without
+                     doing anything. Focus it too, or a keyboard or screen
+                     reader user is left where the form used to be. */
+                  var doneBox = donePane && donePane.querySelector('[role="status"]');
+                  if (doneBox) {
+                    doneBox.setAttribute('tabindex', '-1');
+                    if (doneBox.scrollIntoView) {
+                      doneBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                    if (doneBox.focus) doneBox.focus({ preventScroll: true });
                   }
                 })
                 .catch(function (err) {
-                  fail((err && err.message) || 'Network error.', err && err.fieldErrors);
+                  /* A message thrown from the .then above is the Worker's, and
+                     is a sentence written for a visitor to read. A fetch
+                     rejection is a browser-internal TypeError ("Failed to
+                     fetch") and must never reach the page. */
+                  fail(
+                    err && err.userFacing ? err.message : 'We could not reach the server.',
+                    err && err.fieldErrors
+                  );
                 });
             });
           }
