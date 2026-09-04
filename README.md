@@ -125,15 +125,22 @@ npx wrangler deploy          # needs CLOUDFLARE_API_TOKEN
 Live at **https://staging-lp-rexdalemobilewash.ash-47a.workers.dev**. That is
 the only staging URL; there is no custom domain.
 
-A custom domain was tried and removed. `staging.lp.rexdalemobilewash.ca` cannot
-work while `rexdalemobilewash.ca` sits on GoDaddy nameservers
-(`ns41`/`ns42.domaincontrol.com`): the Cloudflare zone is `pending`, so
-Cloudflare is not authoritative and creates no record, and the zone is `full` on
-a Free plan, so CNAME setup is unavailable. Only a nameserver move would work.
-It is not safe yet — the Cloudflare zone holds **zero records** while the live
-zone carries Microsoft 365 mail (MX to Outlook, SPF, Teams/Skype SRV and CNAME
-records), so a cutover today would take down the client's email along with the
-site. That is gate 6 of the migration (`wp-10-confirm-dns-is-ours`).
+A custom domain was tried and removed at a time when `rexdalemobilewash.ca` was
+still on GoDaddy nameservers and the Cloudflare zone was `pending` with zero
+records. **That is no longer the situation.** As of 2026-09-04 the domain
+resolves from `dee`/`josh.ns.cloudflare.com`, the zone is `active` and `full`,
+and it carries 28 records including the client's Microsoft 365 mail (Outlook
+`MX`, apex `SPF`, the tenant `TXT`, and the Teams/Skype `SRV` and `CNAME`
+records). So a custom hostname is now technically possible; whether to attach
+one is a migration decision, not a blocked one.
+
+Verify before relying on any of this — it is the kind of fact that changes
+underneath a README:
+
+```bash
+curl -s -H 'accept: application/dns-json' \
+  'https://cloudflare-dns.com/dns-query?name=rexdalemobilewash.ca&type=NS'
+```
 
 Every response carries `X-Robots-Tag: noindex, nofollow`, set in
 `worker/index.js`, so staging cannot compete with the live site in search.
@@ -207,20 +214,51 @@ have replaced.
 
 | | |
 |---|---|
-| From | `forms@brandingcentres.com` — the **shared** sending domain |
+| From | `forms@rexdalemobilewash.ca` — the client's **own** domain |
 | To | `dispatch@rexdalemobilewash.ca` |
 | Cc | `Paolo@tboxstudio.com` |
 | Reply-To | `dispatch@rexdalemobilewash.ca` |
 
-`rexdalemobilewash.ca` is **never** used as a sending domain. That is the whole
-point: no SPF, DKIM or DMARC record of the client's is involved, so nothing this
-endpoint does can reach their Microsoft 365 mail reputation. The visitor's
-address never goes in `From` either — to a receiving mail server that is forgery
-and it lands every notification in spam. It goes in the body as a `mailto:` link.
+This used to send as `forms@brandingcentres.com`, a shared domain, specifically
+so that nothing here could reach the client's Microsoft 365 mail reputation. It
+now sends as the client's own domain, verified in Resend through records chosen
+to stay clear of their live mail:
+
+| Record | Name | Value |
+|---|---|---|
+| TXT | `resend._domainkey` | the Resend DKIM public key |
+| TXT | `send` | `v=spf1 include:amazonses.com ~all` |
+| MX | `send` | `feedback-smtp.us-east-1.amazonses.com` (priority 10) |
+
+Their apex `SPF` (`v=spf1 include:secureserver.net -all`) and their Outlook `MX`
+are **not modified and not consulted**: SPF authenticates the envelope sender,
+which is `send.rexdalemobilewash.ca`, not the `From` header a person reads. DKIM
+uses a new selector, so their Microsoft 365 selectors are untouched. One genuine
+gain: `From` and the DKIM `d=` now align, so this mail would pass DMARC if a
+policy is ever published.
+
+**What this does not buy is isolation.** Form mail and the client's business
+mail now share one domain reputation. Anything this endpoint sends in volume is
+felt by their Microsoft 365 mail — which raises the stakes on the confirmation
+email below.
+
+The visitor's address never goes in `From` either — to a receiving mail server
+that is forgery and it lands every notification in spam. It goes in the body as
+a `mailto:` link.
 
 The visitor also gets a confirmation email (`CONTACT_CONFIRM`), sent *after* the
 notification has already succeeded and best-effort: a bounced confirmation must
 never cost the client a real lead.
+
+**Known risk, accepted deliberately.** That confirmation is the one message here
+addressed to an unvetted person, at an address they chose, quoting text they
+wrote — which is the shape of a relay: someone can use the form to send their
+own words to a third party over a domain we have verified. Since `From` moved to
+`rexdalemobilewash.ca`, the reputation that would spend is the client's business
+domain. The honeypot and the 8/min per-IP limit blunt it; neither closes it. The
+close, if it is ever wanted, is to drop `v.message` from `summary` in
+`confirmationEmail()` so the acknowledgement only repeats fields the client
+already holds — at the cost of the "what you sent us" quote-back.
 
 ### The API key is a Worker secret
 
@@ -258,21 +296,43 @@ build runs and absent when the route executes: the build passes and the form
 
 ### Client mail, re-proven after this change
 
-Unchanged, as it must be — GoDaddy nameservers, Outlook MX, M365 records:
+Moving `From` onto the client's domain meant writing to the zone their business
+email lives in, so this was checked before and after. Every record below is
+byte-identical to what was there beforehand — the three Resend records are
+additions on new names, and nothing existing was modified or removed:
 
 ```
-NS    ns41/ns42.domaincontrol.com
-MX    rexdalemobilewash-ca.mail.protection.outlook.com
-TXT   v=spf1 include:secureserver.net -all
-TXT   NETORG7588905.onmicrosoft.com
+NS    dee.ns.cloudflare.com / josh.ns.cloudflare.com   (was GoDaddy; zone active)
+MX    rexdalemobilewash-ca.mail.protection.outlook.com   priority 0   UNCHANGED
+TXT   v=spf1 include:secureserver.net -all                            UNCHANGED
+TXT   NETORG7588905.onmicrosoft.com                                   UNCHANGED
+SRV   _sip._tls / _sipfederationtls._tcp  (Teams/Skype)               UNCHANGED
 ```
 
-**Pre-existing, not caused by this work:** that SPF record authorises GoDaddy
-(`secureserver.net`) with a hard fail `-all`, but the domain's mail is on
-Microsoft 365, which is *not* included. Mail sent from their tenant can fail
-SPF at strict receivers. There is also no `_dmarc` record. Worth raising with
-whoever owns the client's mail — it is a DNS edit on their side, deliberately
-outside what this endpoint touches.
+Added, all on names that did not previously exist:
+
+```
+TXT   resend._domainkey    <Resend DKIM public key>
+TXT   send                 v=spf1 include:amazonses.com ~all
+MX    send                 feedback-smtp.us-east-1.amazonses.com   priority 10
+```
+
+Re-prove it yourself after any change here:
+
+```bash
+for t in MX TXT; do
+  curl -s -H 'accept: application/dns-json' \
+    "https://cloudflare-dns.com/dns-query?name=rexdalemobilewash.ca&type=$t" \
+    | python3 -c 'import sys,json;[print(a["data"]) for a in json.load(sys.stdin).get("Answer",[])]'
+done
+```
+
+**Pre-existing, not caused by this work:** that apex SPF record authorises
+GoDaddy (`secureserver.net`) with a hard fail `-all`, but the domain's mail is on
+Microsoft 365, which is *not* included. Mail sent from their tenant can fail SPF
+at strict receivers. There is also no `_dmarc` record. Neither is touched by this
+endpoint — form mail is authenticated on the `send.` subdomain — but both are
+worth raising with whoever owns the client's mail.
 
 ## Two deliberate departures from the live site
 

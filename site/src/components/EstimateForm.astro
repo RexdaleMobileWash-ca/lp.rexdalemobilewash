@@ -90,7 +90,7 @@ const ENDPOINT = '/api/contact';
     Which form this is. The worker prints it on the notification so whoever
     answers dispatch@ can tell a home-page enquiry from a paid-landing-page one.
   */}
-  <input type="hidden" name="source" value={id === 'cta' ? 'cta' : 'hero'} />
+  <input type="hidden" name="source" value={variant} />
 
   {/*
     Honeypot. Hidden from people and from screen readers, so anything that

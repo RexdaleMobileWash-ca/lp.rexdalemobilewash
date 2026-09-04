@@ -9,12 +9,20 @@
  *
  * ADDRESSING — this is the part worth not "improving" casually:
  *
- *   From ....... forms@brandingcentres.com   the SHARED sending domain
+ *   From ....... forms@rexdalemobilewash.ca      the client's own domain
  *   Reply-To ... dispatch@rexdalemobilewash.ca   the client's own address
  *
- * rexdalemobilewash.ca is NEVER used as a sending domain. That is what makes
- * it impossible for this endpoint to touch the client's existing Microsoft 365
- * mail reputation — no SPF, DKIM or DMARC record of theirs is involved.
+ * The From domain is verified in Resend through records deliberately kept clear
+ * of the client's live Microsoft 365 mail: DKIM on the `resend._domainkey`
+ * selector, and SPF plus the return path on the `send.` SUBDOMAIN. Their apex
+ * SPF (`v=spf1 include:secureserver.net -all`) and their Outlook MX are neither
+ * modified nor consulted — SPF authenticates the envelope sender, which is
+ * send.rexdalemobilewash.ca, not the From header a person sees.
+ *
+ * What that does NOT buy: isolation. Form mail and the client's business mail
+ * now share one domain reputation, so anything sent in volume from here is felt
+ * by their Microsoft 365 mail. Weigh that before raising send rates, and see
+ * CONTACT_CONFIRM below, which is the one path that emails a stranger.
  *
  * The visitor's address never goes in From. To a receiving mail server that is
  * forgery, and it is the fastest way to land every notification in spam. The
@@ -115,6 +123,17 @@ const esc = (s) =>
   );
 
 /*
+ * Escape, then turn newlines into real break tags.
+ *
+ * The message blocks below also carry `white-space:pre-wrap`, but that is belt
+ * and braces only: CONTACT_TO is a Microsoft 365 mailbox, Outlook for Windows
+ * renders HTML with the Word engine, and Word does not implement the CSS
+ * `white-space` property at all. Without explicit <br> the line breaks in an
+ * enquiry collapse into one run-on paragraph for the one reader who matters.
+ */
+const breaks = (s) => esc(s).replace(/\n/g, '<br>');
+
+/*
  * A failure a PERSON has to read.
  *
  * The fetch path asks for JSON and renders the message beside the button, so
@@ -203,6 +222,12 @@ function clean(body) {
   const out = {};
   for (const [field, max] of Object.entries(LIMITS)) {
     out[field] = String(body[field] ?? '')
+      // Normalise line endings FIRST. A urlencoded form post puts CRLF on the
+      // wire, and the per-character strip below would turn that pair into two
+      // newlines — so every single line break became a blank line, and a real
+      // paragraph break collapsed to the same thing. Single and double breaks
+      // were indistinguishable in the email.
+      .replace(/\r\n?/g, '\n')
       // Strip control characters: invisible in the email, and a bare CR/LF in a
       // value that reaches a header is a header-injection vector.
       .replace(/[\u0000-\u001F\u007F]/g, field === 'message' ? '\n' : ' ')
@@ -253,7 +278,7 @@ function notificationEmail(env, v, meta) {
       ${
         v.message
           ? `<p style="margin:18px 0 6px;color:#5b6b7a;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">Message</p>
-             <div style="white-space:pre-wrap;color:#111;font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;background:#f4f7f9;border-radius:4px;padding:12px 14px">${esc(v.message)}</div>`
+             <div style="white-space:pre-wrap;color:#111;font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;background:#f4f7f9;border-radius:4px;padding:12px 14px">${breaks(v.message)}</div>`
           : ''
       }
       <p style="margin:20px 0 0;padding-top:14px;border-top:1px solid #e6edf2;color:#8a97a3;font:12px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">
@@ -296,6 +321,22 @@ function notificationEmail(env, v, meta) {
   };
 }
 
+/*
+ * The visitor's own acknowledgement, sent when CONTACT_CONFIRM is 'true'.
+ *
+ * KNOWN RISK, left in deliberately: this is the only mail here addressed to
+ * someone we have not vetted, at an address they chose, quoting text they
+ * wrote. That shape is a relay — someone can use the form to send their own
+ * words to a third party over our verified domain — and since From moved to
+ * rexdalemobilewash.ca, the reputation it would spend is the client's business
+ * domain, not a shared one. The honeypot and the per-IP rate limit blunt it;
+ * neither closes it.
+ *
+ * The fix, if it is ever wanted, is one line: drop `v.message` from `summary`
+ * so the acknowledgement only ever repeats fields the client already holds.
+ * That loses the "what you sent us" quote-back, which is why it is a decision
+ * and not a silent change.
+ */
 function confirmationEmail(env, v) {
   const site = env.SITE_NAME || 'Rexdale Mobile Wash';
   // With no message, echo back the details they did give rather than an empty
@@ -312,7 +353,7 @@ function confirmationEmail(env, v) {
       <a href="tel:4162446497" style="color:#164E83">(416) 244-6497</a>.
     </p>
     <p style="margin:0 0 6px;color:#5b6b7a;font:13px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">What you sent us</p>
-    <div style="white-space:pre-wrap;color:#111;font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;background:#f4f7f9;border-radius:4px;padding:12px 14px">${esc(
+    <div style="white-space:pre-wrap;color:#111;font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;background:#f4f7f9;border-radius:4px;padding:12px 14px">${breaks(
       summary,
     )}</div>
     <p style="margin:20px 0 0;padding-top:14px;border-top:1px solid #e6edf2;color:#8a97a3;font:12px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">

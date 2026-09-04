@@ -29,12 +29,19 @@
   // Contact-form addressing. Non-secret on purpose — these are the values worth
   // seeing in review, and the only credential is RESEND_API_KEY (below).
   //
-  // CONTACT_FROM must stay on the SHARED sending domain. rexdalemobilewash.ca is
-  // never a sending domain here: that is what keeps the client's Microsoft 365
-  // mail reputation entirely out of reach of this Worker.
+  // CONTACT_FROM sends as the client's own domain. That domain is verified in
+  // Resend through records that are scoped away from the client's live mail:
+  // DKIM on the `resend._domainkey` selector, and SPF plus the return path on
+  // the `send.` SUBDOMAIN. The apex SPF (`include:secureserver.net -all`) and
+  // the Outlook MX are untouched and uninvolved — SPF authenticates the
+  // envelope sender, which is `send.rexdalemobilewash.ca`, not the From header.
+  //
+  // The trade this makes: form mail and the client's Microsoft 365 mail now
+  // share one domain reputation. Anything this endpoint sends in volume is felt
+  // by their business email.
   "vars": {
     "SITE_NAME": "Rexdale Mobile Wash",
-    "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
+    "CONTACT_FROM": "Rexdale Mobile Wash <forms@rexdalemobilewash.ca>",
     "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
     "CONTACT_CC": "Paolo@tboxstudio.com",
     "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
