@@ -9,7 +9,8 @@ comment beside the block it came from.
 
 **Builds clean.** 4 pages, zero errors, zero warnings, and the AD-9 image check
 passes. `site/dist/` is build output and is not committed — `.gitignore` excludes
-it. There is no CI: `npm run build` then `npx wrangler deploy`, by hand.
+it. There is no CI: `npm run build` then `npm run deploy:staging`, by hand. See
+*Two environments*.
 
 ```bash
 cd site
@@ -39,6 +40,7 @@ site/
     components/ Header.astro Hero.astro Steps.astro ServiceSection.astro
                 WhyUs.astro About.astro Faq.astro Clients.astro
                 ClosingCta.astro Footer.astro EstimateForm.astro
+                Analytics.astro   Ads + Clarity, the ONE place they are named
     pages/      index.astro privacy-policy.astro thank-you.astro
                 pressure-washing.astro   (self-contained, see below)
     lib/img.ts    the ONE place the image host is named (AD-9)
@@ -103,23 +105,54 @@ The page uses the same GTM container as the rest of the build
 Web3Forms confirms a success — not on click, which would count abandoned and
 failed submissions as conversions.
 
-## Staging
+## Two environments
 
-Deployed as a Cloudflare Worker (static assets) named
-`staging-lp-rexdalemobilewash`:
+One script, two Workers. `site/wrangler.jsonc` defines both.
+
+| | Worker | Reached at | `NOINDEX` |
+|---|---|---|---|
+| Production | `lp-rexdalemobilewash` | its Custom Domain only (`workers_dev: false`) | `false` |
+| Staging | `staging-lp-rexdalemobilewash` | `staging-lp-rexdalemobilewash.ash-47a.workers.dev`, `staging.lp.rexdalemobilewash.ca` | `true` |
 
 ```bash
 cd site
 npm run build
-npx wrangler deploy          # needs CLOUDFLARE_API_TOKEN
+npm run deploy:staging       # --env staging       needs CLOUDFLARE_API_TOKEN
+npm run deploy               # --env ""            production
 ```
 
-Live at **https://staging-lp-rexdalemobilewash.ash-47a.workers.dev**. That is
-the only staging URL; there is no custom domain.
+Use the scripts. Once a config defines environments, a bare `wrangler deploy`
+warns that no target was given and then deploys the top level — production —
+anyway; the scripts name the environment explicitly.
 
-A custom domain was tried and removed, at a time when `rexdalemobilewash.ca` sat
-on GoDaddy nameservers and the Cloudflare zone was `pending` with zero records.
-**That is no longer the case.** Verified 2026-09-08 over public DNS:
+**Production has never been deployed.** `lp-rexdalemobilewash` exists in this
+config and nowhere else: no Worker, no Custom Domain, and — the one that bites —
+no `RESEND_API_KEY`. A secret belongs to one Worker, and the staging Worker is
+the one that has it. See *Going live* below.
+
+### noindex is config, not a hardcoded header
+
+`worker/index.js` sends `X-Robots-Tag: noindex, nofollow` when `NOINDEX=true`
+**or** the hostname is `*.workers.dev` or begins `staging.`. The hostname guard
+is deliberate: it can only ever fail safe, so a production config deployed to a
+preview hostname is still noindexed.
+
+It used to be an unconditional `headers.set(...)` with a comment saying to
+remove it before production. That would have shipped with the first cutover
+deploy and quietly deindexed a page carrying paid traffic — a comment is not a
+safeguard.
+
+### Staging's custom domain
+
+`staging.lp.rexdalemobilewash.ca` **is** attached to the staging Worker and
+serves with a valid certificate. Earlier notes in this file said a custom domain
+was tried and removed; that was true at the time and is no longer. A Workers
+Custom Domain gets its own certificate, so the free Universal SSL "no second
+label below the apex" limit — the constraint that shaped `img-lp` — does not
+apply to it.
+
+The nameserver situation those notes described has also changed. Verified
+2026-09-08 over public DNS:
 
 ```
 NS   dee.ns.cloudflare.com / josh.ns.cloudflare.com   (was ns69/ns70.domaincontrol.com)
@@ -131,10 +164,107 @@ TXT  "NETORG7588905.onmicrosoft.com"
 The nameservers moved, the zone is `active`, and the Microsoft 365 mail records
 came across intact — so gate 6 (`wp-10-confirm-dns-is-ours`) is satisfied and
 Cloudflare is authoritative. That is what made `img-lp.rexdalemobilewash.ca`
-possible. A staging hostname is still not set up; it would need
-`staging.lp.rexdalemobilewash.ca`, which is two labels below the apex and so is
-**not covered by the free Universal SSL certificate** — the same constraint that
-shaped the image hostname. `workers.dev` remains the only staging URL.
+possible, and what makes the cutover below a Cloudflare-side operation rather
+than a registrar one.
+
+## Going live
+
+`lp.rexdalemobilewash.ca` still serves the old WordPress site. Repointing it is
+gate 13 of `wp-migration` (`wp-17-point-domain-at-new-site`) and **has not been
+done**. What follows is the prepared procedure, not a record of one.
+
+### The rollback record — save this before anything else
+
+The DNS record that currently answers for the hostname, read from the Cloudflare
+zone `rexdalemobilewash.ca` (`a4310a1bbb3a53ad3206c1809e6d61b1`) on 2026-09-08:
+
+```
+A   lp.rexdalemobilewash.ca   185.206.163.79   proxied, TTL auto (1)
+```
+
+That value **is the rollback**, and it is the one thing here that cannot be
+re-derived: a Custom Domain cannot be created over an existing record, so the
+record must be deleted first, and Cloudflare does not keep what it deleted.
+
+### The order
+
+1. Re-read the record above and confirm it still matches. If it has changed,
+   the new value is the rollback.
+2. Deploy production and give it its secret — **before** any DNS change, so the
+   Worker is ready to serve the instant the hostname points at it:
+   ```bash
+   cd site
+   npm run build
+   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npm run deploy
+   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY --env ""
+   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret list --env ""
+   ```
+3. Delete the `A` record for `lp.rexdalemobilewash.ca`.
+4. Add `lp.rexdalemobilewash.ca` as a **Custom Domain** on
+   `lp-rexdalemobilewash` — Worker → Settings → Domains & Routes. Not a Route:
+   on a Custom Domain the Worker *is* the origin, and Cloudflare writes the DNS
+   record and issues the certificate itself.
+5. Wait for the certificate to go active before announcing anything.
+
+Steps 3 and 4 are seconds apart and the hostname resolves to nothing between
+them. Do them deliberately, and not on a Friday.
+
+The cutover is deliberately **not** declared as a `routes` entry in
+`wrangler.jsonc`: that would put the irreversible step behind an ordinary
+`npm run deploy`, run by anyone, with no chance to save the rollback first.
+
+**Rollback:** delete the Custom Domain, re-create `A 185.206.163.79` proxied.
+The old WordPress site keeps running throughout — it is not switched off until
+gate 16 (`wp-20-switch-off-old-site`), and that is the whole reason the order is
+arranged this way. Never touch the `MX` or apex `TXT` records while doing this.
+
+### Not clear for cutover yet
+
+Analytics parity is done (see *Analytics* below). These are not:
+
+- **Privacy policy is placeholder text.** See *Open items*.
+- **`/pressure-washing/` quote forms are dead** — no Web3Forms key, so phone is
+  that page's only conversion path.
+- **Gates 14 and 15 have not run** — `wp-18-keep-old-links-working` (edge
+  redirects) and `wp-19-check-nothing-is-broken` (the live sweep). The old page
+  links nowhere but `/`, `/feed/`, `/comments/feed/` and `wp-json`, so the
+  redirect surface is small, but small is not none.
+- The gate record `sites/lp.rexdalemobilewash.ca.md` lives in the command repo,
+  not this one, so gate 12's status cannot be confirmed from here.
+
+## Analytics
+
+The live WordPress page fires Google Ads and Clarity from hardcoded theme
+snippets. All four are reproduced verbatim in
+`site/src/components/Analytics.astro`, captured from the live `/` and
+`/thank-you/` on 2026-09-08:
+
+| Tag | Id |
+|---|---|
+| Google Ads gtag.js | `AW-16946176869` |
+| Call conversion + number swap | `AW-16946176869/jqC8COOXo64aEOXGyJA_` → (416) 244-6497 |
+| Form conversion, `/thank-you/` only | `AW-16946176869/cnvWCPKRo64aEOXGyJA_` |
+| Microsoft Clarity | `qsc0wq5qpr` |
+
+There is no GA4 on either site — no `G-` measurement id exists anywhere.
+
+They are hardcoded rather than configured in GTM because this page carries paid
+traffic and conversion history is not backfillable: anything not carried across
+simply stops counting the moment the domain moves, and nobody notices until the
+Ads account has optimised against a hole.
+
+`Base.astro` pulls the component in for `/`, `/privacy-policy/` and
+`/thank-you/`; `pressure-washing.astro` pulls it in separately because it has
+its own head and does not use `Base`. Only `/thank-you/` passes a `conversion`
+prop — that event fires on page load, which is safe because the Worker's 303 is
+the only way to reach the page, so abandoned and failed submissions are never
+counted.
+
+**Double-counting is the one way this goes wrong.** The build also loads GTM
+container `GTM-NMTLRJ63`. If that container is ever configured to fire
+conversions for `AW-16946176869` while these snippets are present, every
+conversion counts twice. Pick one place; if it moves to GTM, delete
+`Analytics.astro` in the same change.
 
 Every response carries `X-Robots-Tag: noindex, nofollow`, set in
 `worker/index.js`, so staging cannot compete with the live site in search.
@@ -238,8 +368,9 @@ build runs and absent when the route executes: the build passes and the form
   accurate accounting system". A caller spread across colos gets a multiple of
   the limit. It is a brake on the naive case, not a guarantee.
 - **Not yet present:** a WAF rate limiting rule and Turnstile. Both need a
-  Cloudflare **zone** to attach to, and this is served from `workers.dev`. Add
-  them when the Worker gets a custom domain.
+  Cloudflare **zone** to attach to. `staging.lp.rexdalemobilewash.ca` is now in
+  the zone, so they can be attached and tested there ahead of the cutover rather
+  than added to a live site afterwards.
 
 ### Client mail, re-proven after this change
 
@@ -391,10 +522,14 @@ copied.
   it hides at is unknown; the section does render in page source, so it is built
   visible here. Confirm against client intent.
 - **Infrastructure, as it now stands.** GitHub org and repo exist; DNS is on
-  Cloudflare and authoritative; the staging Worker is deployed; the image store
-  is the B2 bucket `lp-rexdalemobilewash-img` served at
-  `img-lp.rexdalemobilewash.ca`. The live WordPress site is still untouched and
+  Cloudflare and authoritative; the staging Worker is deployed and reachable at
+  both its `workers.dev` URL and `staging.lp.rexdalemobilewash.ca`; the image
+  store is the B2 bucket `lp-rexdalemobilewash-img` served at
+  `img-lp.rexdalemobilewash.ca`. The production Worker `lp-rexdalemobilewash`
+  exists **in config only** — never deployed, no Custom Domain, no
+  `RESEND_API_KEY`. The live WordPress site is still untouched and
   `lp.rexdalemobilewash.ca` still resolves to it — the domain has not been
-  pointed at the Worker.
+  pointed at the Worker. See *Going live* for the prepared procedure and the
+  rollback record.
 - **No day-2 procedure exists** anywhere in the toolchain for shipping a change
   to a live site. Flag at handover.

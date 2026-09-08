@@ -1,6 +1,25 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "staging-lp-rexdalemobilewash",
+
+  // TWO WORKERS, ONE SCRIPT.
+  //
+  //   lp-rexdalemobilewash          production   npm run deploy
+  //   staging-lp-rexdalemobilewash  staging      npm run deploy:staging
+  //
+  // Use those scripts, not a bare `npx wrangler deploy`: once a config defines
+  // environments, an unqualified deploy warns that no target was given and then
+  // deploys the top level anyway — i.e. production, from a command that reads
+  // like it might mean anything. Both scripts name their environment
+  // explicitly (`--env=""` is how wrangler spells "the top level").
+  //
+  // Staging keeps its existing script name so the deploy lands on the Worker
+  // that already holds the RESEND_API_KEY secret and the
+  // staging.lp.rexdalemobilewash.ca Custom Domain. Renaming it would create a
+  // second Worker with neither.
+  //
+  // Environments do NOT inherit vars, bindings or assets, so every one of those
+  // is repeated in the `env.staging` block below rather than assumed.
+  "name": "lp-rexdalemobilewash",
   "main": "worker/index.js",
   "compatibility_date": "2026-09-03",
 
@@ -8,8 +27,8 @@
   // resolves to /privacy-policy/index.html. "auto-trailing-slash" handles that;
   // "404-page" serves dist/404.html once one exists, and a plain 404 until then.
   // run_worker_first is required: by default a request matching a static asset
-  // is served without invoking the Worker at all, so the noindex header in
-  // worker/index.js would never be applied.
+  // is served without invoking the Worker at all, so worker/index.js would
+  // never see the request and POST /api/contact would 405.
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -18,13 +37,26 @@
     "run_worker_first": true
   },
 
-  // Staging is served on the workers.dev URL only. A custom domain
-  // (staging.lp.rexdalemobilewash.ca) cannot work while rexdalemobilewash.ca
-  // is on GoDaddy nameservers: Cloudflare is not authoritative, and the zone is
-  // 'full' on a Free plan so CNAME setup is not an option either. Adding a
-  // "routes" entry here would also switch workers.dev off unless
-  // workers_dev is set explicitly alongside it.
-  "workers_dev": true,
+  // Production is reached on its Custom Domain only. A workers.dev URL here
+  // would be a second, indexable copy of the live site competing with it in
+  // search — the duplicate-content problem the staging noindex header exists to
+  // avoid in the first place.
+  "workers_dev": false,
+
+  // THE CUTOVER IS NOT IN THIS FILE, ON PURPOSE.
+  //
+  // Attaching lp.rexdalemobilewash.ca is gate 13 of wp-migration and it is the
+  // irreversible half-second of the whole build: the existing DNS record has to
+  // be deleted before a Custom Domain can be created over it, and Cloudflare
+  // does not keep the old value. Declaring it as a "routes" entry here would
+  // put that step behind an ordinary `wrangler deploy` — one command, run by
+  // anyone, with no chance to save the rollback first.
+  //
+  // So it is done deliberately, in the dashboard or by API, per
+  // wp-17-point-domain-at-new-site. The record to restore on rollback is in
+  // README.md under "Going live".
+  //
+  //   "routes": [{ "pattern": "lp.rexdalemobilewash.ca", "custom_domain": true }]
 
   // Contact-form addressing. Non-secret on purpose — these are the values worth
   // seeing in review, and the only credential is RESEND_API_KEY (below).
@@ -32,17 +64,25 @@
   // CONTACT_FROM must stay on the SHARED sending domain. rexdalemobilewash.ca is
   // never a sending domain here: that is what keeps the client's Microsoft 365
   // mail reputation entirely out of reach of this Worker.
+  //
+  // NOINDEX is read by worker/index.js. "false" here is the whole point of the
+  // split — see the header comment in that file.
   "vars": {
     "SITE_NAME": "Rexdale Mobile Wash",
     "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
     "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
     "CONTACT_CC": "Paolo@tboxstudio.com",
     "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
-    "CONTACT_CONFIRM": "true"
+    "CONTACT_CONFIRM": "true",
+    "NOINDEX": "false"
   },
 
-  // RESEND_API_KEY is NOT here. It is a Worker secret:
+  // RESEND_API_KEY is NOT here. It is a Worker secret, and a secret belongs to
+  // ONE Worker: the staging Worker already has it, the production Worker starts
+  // without it, and until it is set the form 500s on the live domain.
+  //     cd site
   //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
+  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret list
   // Adding it as a Build variable instead is the trap: it is present while the
   // build runs and absent when the route executes, so the build passes and the
   // form 500s in production.
@@ -58,5 +98,49 @@
     }
   ],
 
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+
+  "env": {
+    "staging": {
+      "name": "staging-lp-rexdalemobilewash",
+
+      // Staging is served on the workers.dev URL and on
+      // staging.lp.rexdalemobilewash.ca, which is already attached to this
+      // Worker as a Custom Domain. That hostname works despite being two labels
+      // below the apex: a Workers Custom Domain gets its own certificate, so the
+      // free Universal SSL wildcard limit that shaped `img-lp` does not apply.
+      "workers_dev": true,
+
+      "assets": {
+        "directory": "./dist",
+        "binding": "ASSETS",
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page",
+        "run_worker_first": true
+      },
+
+      // Identical to production except NOINDEX. Staging sends real mail to the
+      // real inbox on purpose — a form that is only ever tested against a
+      // different address is not the form that ships.
+      "vars": {
+        "SITE_NAME": "Rexdale Mobile Wash",
+        "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
+        "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
+        "CONTACT_CC": "Paolo@tboxstudio.com",
+        "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
+        "CONTACT_CONFIRM": "true",
+        "NOINDEX": "true"
+      },
+
+      "ratelimits": [
+        {
+          "name": "CONTACT_RATE_LIMIT",
+          "namespace_id": "1001",
+          "simple": { "limit": 8, "period": 60 }
+        }
+      ],
+
+      "observability": { "enabled": true }
+    }
+  }
 }

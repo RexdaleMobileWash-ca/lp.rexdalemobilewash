@@ -7,7 +7,9 @@
     "dev": "astro dev",
     "build": "astro build && node bin/check-images.mjs",
     "check:images": "node bin/check-images.mjs",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "deploy": "npx wrangler deploy --env=\"\"",
+    "deploy:staging": "npx wrangler deploy --env staging"
   },
   "dependencies": {
     "astro": "^7.0.0"

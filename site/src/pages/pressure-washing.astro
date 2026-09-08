@@ -23,6 +23,7 @@
  * (Montserrat/Source Sans), and Base's global styles would fight it.
  */
 import { img } from '../lib/img';
+import Analytics from '../components/Analytics.astro';
 
 /* AD-9: this page's photography lives in the bucket like everything else,
    under the pw-assets/img/ prefix it already had. Fonts stay in public/ —
@@ -168,6 +169,13 @@ const FAQ_LD = {
       })(window, document, 'script', 'dataLayer', 'GTM-NMTLRJ63');
     </script>
     <!-- End Google Tag Manager -->
+
+    <!--
+      Same Ads + Clarity tags as the rest of the build. No `conversion` prop:
+      this page's own lead event is `generate_lead`, pushed to the dataLayer by
+      the script at the end of the body only after Web3Forms confirms a success.
+    -->
+    <Analytics />
 
     <title>{TITLE}</title>
     <meta name="description" content={DESC} />
