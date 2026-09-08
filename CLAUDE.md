@@ -130,35 +130,43 @@ The hostname is `img-lp`, not `img.lp.…`, because `img.rexdalemobilewash.ca` i
 already the main site's bucket and the free Universal SSL certificate does not
 cover a second label below the apex.
 
-## Analytics — there is no Google Ads tagging on this site at all
+## Analytics — the container loads here, the Google tag must not fire here
 
-`lp.rexdalemobilewash.ca` fires **no Google Ads tag**: no hardcoded gtag.js, and
-no GTM container. `Analytics.astro` is Microsoft Clarity (`qsc0wq5qpr`) and
-nothing else. There is no GA4 (no `G-` measurement ID anywhere).
+`lp.rexdalemobilewash.ca` loads GTM container **`GTM-NMTLRJ63`** — the same
+container as the main site, `rexdalemobilewash.ca`. There is no hardcoded
+gtag.js on any page. `Analytics.astro` is Microsoft Clarity (`qsc0wq5qpr`) and
+nothing else. No GA4 (no `G-` measurement ID anywhere).
 
-How it got here, in two steps:
+**Inside that container is the Google tag `GT-K4CTKXS5`, destination Google Ads
+`AW-16946176869`. It must be excluded from this site.** A page cannot decline a
+tag its container chooses to fire, so the exclusion has to be configured in GTM:
 
-1. The hardcoded Ads snippets ported from the old WordPress theme were removed
-   in favour of the container, to stop conversions double-counting.
-2. The container itself was then removed from this site. `GTM-NMTLRJ63` belongs
-   to the **main site, rexdalemobilewash.ca**, and this landing page was loading
-   the same container — which is how the Google tag (`GT-K4CTKXS5`, destination
-   `AW-16946176869`) kept showing up in Tag Assistant here. It was removed from
-   this build rather than paused in GTM, because pausing would have taken the
-   tag off the main site too.
+> On the Google tag's trigger, add an exception:
+> **Data Layer Variable `site` equals `lp`**
 
-**The main site is untouched.** It keeps `GTM-NMTLRJ63` and everything in it.
+To make that a single rule that cannot drift, every page here pushes
+`{ site: 'lp' }` into the dataLayer **before** the container initialises, so the
+variable is readable by the time any tag evaluates. Ordering is load-bearing —
+if the push ever moves below the container snippet the exception stops matching
+and the Ads tag starts firing on this site again.
 
-**Consequence, accepted deliberately:** this page carries paid Google Ads
-traffic and nothing on it reports conversions — not the base tag, not the call
-conversion `jqC8COOXo64aEOXGyJA_`, not the form conversion
-`cnvWCPKRo64aEOXGyJA_`. The Ads account sees zero conversions from this landing
-page. If reporting is ever wanted back, give the page its **own** container or
-its own snippet — one place only, never both, or every conversion counts twice.
+A hostname condition would also work for production, but would have to be
+restated for `staging.lp.rexdalemobilewash.ca` and the workers.dev preview. The
+one flag covers all three.
 
-Still live and unaffected: Microsoft Clarity, and the `generate_lead` dataLayer
-push on `/pressure-washing/` (which now pushes into a dataLayer no container
-reads — harmless, and ready if a container is ever added).
+**Do not pause or delete that tag inside GTM.** It is the main site's tag and
+the main site needs it; pausing it there removes it from `rexdalemobilewash.ca`
+too. Scope it with the exception instead.
+
+**Until the exception exists, the Ads tag fires on this landing page.** Deploying
+the container is what puts it back. Verify in Tag Assistant after publishing the
+GTM change: the container row should remain, the "Rexdale Mobile Wash /
+`AW-16946176869`, `GT-K4CTKXS5`" row should not.
+
+If this page is ever meant to report its own Ads conversions, hang them on the
+`generate_lead` dataLayer push (`/pressure-washing/`) or a `/thank-you/` page
+view — in one place only, never alongside a hardcoded snippet, or every
+conversion counts twice.
 
 ## Build note
 

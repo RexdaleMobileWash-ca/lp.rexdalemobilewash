@@ -155,29 +155,52 @@ const FAQ_LD = {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    {/* NO GOOGLE TAG MANAGER ON THIS SITE.
-         GTM-NMTLRJ63 belongs to the main site, rexdalemobilewash.ca, and this
-         landing page used to load the same container. That container fires the
-         Google tag (GT-K4CTKXS5) with the Google Ads destination
-         AW-16946176869, so the tag was reaching lp.rexdalemobilewash.ca by way
-         of the main site's container rather than from anything on this page.
+    {/* CONTAINER ONLY — the Google tag must not fire on this site.
 
-         It is removed here rather than paused in GTM: pausing would have taken
-         the tag off rexdalemobilewash.ca as well, which is not the intent. The
-         main site keeps its container and its tag, untouched.
+        GTM-NMTLRJ63 is the main site's container (rexdalemobilewash.ca) and
+        this landing page loads the same one. Inside it sits the Google tag
+        GT-K4CTKXS5, whose destination is Google Ads AW-16946176869. Loading
+        the container here without excluding that tag puts the Ads tag back on
+        this page, which is exactly what it must not do.
 
-         Consequence, on purpose: nothing on this landing page reports Google
-         Ads conversions any more — no base tag, no call conversion, no form
-         conversion. Clarity below is unaffected. */}
+        The exclusion lives in GTM, not here — a page cannot decline a tag its
+        container decides to fire. What this page can do is identify itself, so
+        the rule is a single condition that cannot drift: the dataLayer push
+        below runs BEFORE the container initialises, so `site` is readable as a
+        Data Layer Variable by the time any tag evaluates.
+
+        In GTM, on the Google tag's trigger, add an exception:
+            Data Layer Variable `site`  equals  lp
+        A hostname condition would also work for production, but would have to
+        be restated for staging.lp.rexdalemobilewash.ca and the workers.dev
+        preview; this one flag covers all three. */}
+
+    <!-- Google Tag Manager -->
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ site: 'lp' });
+
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != 'dataLayer' ? '&l=' + l : '';
+        j.async = true;
+        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', 'GTM-NMTLRJ63');
+    </script>
+    <!-- End Google Tag Manager -->
 
     {/*
-      Clarity, same as the rest of the build. No Ads tag and no container on
-      this page — see the note above.
+      Clarity, same as the rest of the build. No hardcoded Ads tag here or on
+      any page — Ads belongs to the container above, and must be excluded from
+      this site by the GTM rule described there.
 
-      The `generate_lead` dataLayer push at the end of the body is left in
-      place: it costs nothing, breaks nothing with no container reading the
-      dataLayer, and is the trigger to hang a conversion on if this page ever
-      gets its own container.
+      The `generate_lead` dataLayer push at the end of the body is the trigger
+      to hang this page's conversion on, if this page is ever given Ads
+      reporting of its own.
     */}
     <Analytics />
 
@@ -580,6 +603,16 @@ const FAQ_LD = {
   </head>
 
   <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-NMTLRJ63"
+        height="0"
+        width="0"
+        style="display:none;visibility:hidden"></iframe></noscript
+    >
+    <!-- End Google Tag Manager (noscript) -->
+
     <div style="width:100%;overflow-x:hidden">
 
     <header style="position:sticky;top:0;z-index:60;background:#FFFFFF;border-bottom:3px solid #0A4C8A;box-shadow:0 2px 10px rgba(16,24,32,.10)">
