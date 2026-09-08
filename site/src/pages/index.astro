@@ -10,8 +10,7 @@ import Faq from '../components/Faq.astro';
 import Clients from '../components/Clients.astro';
 import ClosingCta from '../components/ClosingCta.astro';
 import Footer from '../components/Footer.astro';
-
-const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
+import { upload } from '../lib/img';
 ---
 
 <Base>
@@ -25,7 +24,7 @@ const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
       id="bulk-water"
       eid="1b75439"
       title="Bulk Water Delivery"
-      image={`${BASE}/Bulk-Water-Services-Rexdale-Mobile-Wash.webp`}
+      image={upload('Bulk-Water-Services-Rexdale-Mobile-Wash.webp')}
       alt="Bulk Water Services - Rexdale Mobile Wash"
       tone="light"
       mediaFirst={true}
@@ -43,7 +42,7 @@ const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
       id="graffiti"
       eid="d6ce5d3"
       title="Expert Graffiti Removal"
-      image={`${BASE}/Graffiti-Removal.webp`}
+      image={upload('Graffiti-Removal.webp')}
       alt="Expert graffiti removal by Rexdale Mobile Wash"
       tone="dark"
       mediaFirst={false}
@@ -59,7 +58,7 @@ const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
       id="storefront"
       eid="30aafbe"
       title="Storefront Pressure Washing"
-      image={`${BASE}/Storefront-Pressure-Washing.webp`}
+      image={upload('Storefront-Pressure-Washing.webp')}
       alt="Storefront pressure washing by Rexdale Mobile Wash"
       tone="light"
       mediaFirst={true}
@@ -75,7 +74,7 @@ const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
       id="de-icing"
       eid="0ed65bb"
       title="Premium De-Icing Services"
-      image={`${BASE}/De-Icing-Photo.jpg`}
+      image={upload('De-Icing-Photo.jpg')}
       alt="De-Icing Services Rexdale Mobile Wash"
       tone="dark"
       mediaFirst={true}

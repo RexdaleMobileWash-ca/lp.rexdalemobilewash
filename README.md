@@ -7,9 +7,9 @@ comment beside the block it came from.
 
 ## Status
 
-**Builds clean.** 4 pages, zero errors, zero warnings. `site/dist/` is build
-output and is not committed — `.gitignore` excludes it, and Railway builds from
-source.
+**Builds clean.** 4 pages, zero errors, zero warnings, and the AD-9 image check
+passes. `site/dist/` is build output and is not committed — `.gitignore` excludes
+it. There is no CI: `npm run build` then `npx wrangler deploy`, by hand.
 
 ```bash
 cd site
@@ -41,10 +41,15 @@ site/
                 ClosingCta.astro Footer.astro EstimateForm.astro
     pages/      index.astro privacy-policy.astro thank-you.astro
                 pressure-washing.astro   (self-contained, see below)
-  public/pw-assets/   images + fonts for the pressure-washing page only
+    lib/img.ts    the ONE place the image host is named (AD-9)
+  image-hosts.json          canonical image host + allowlist, read by the check
+  .env.example              PUBLIC_IMG_BASE, a build variable
+  public/pw-assets/fonts/   fonts for the pressure-washing page. Fonts only —
+                            the photos moved to the bucket, see Images below
   dist/         astro build output, directory format (gitignored)
   standalone/   flat single-file HTML, CSS inlined, opens from file://
   bin/make-standalone.mjs   regenerates standalone/ from dist/
+  bin/check-images.mjs      AD-9 enforcement, runs inside `npm run build`
 bin/where.py    gate-record reader from the earlier scaffolding attempt
 ```
 
@@ -57,7 +62,9 @@ A second landing page, ported from the "Rexdale Mobile Wash — Commercial LP V0
 design export. It is **not** part of the Elementor replica above and deliberately
 does not use `Base.astro`: it is its own design system (Oswald/Barlow, navy
 `#0A4C8A` + red `#C4141A`) and Base's globals would fight it. Everything it needs
-is in `src/pages/pressure-washing.astro` plus `public/pw-assets/`.
+is in `src/pages/pressure-washing.astro`, plus its fonts in
+`public/pw-assets/fonts/` and its photography in the B2 bucket under the
+`pw-assets/img/` prefix.
 
 The design arrived as a single 30 MB HTML file: a React runtime that rendered a
 template at load time, with every image and font inlined as base64. Neither half
@@ -110,15 +117,24 @@ npx wrangler deploy          # needs CLOUDFLARE_API_TOKEN
 Live at **https://staging-lp-rexdalemobilewash.ash-47a.workers.dev**. That is
 the only staging URL; there is no custom domain.
 
-A custom domain was tried and removed. `staging.lp.rexdalemobilewash.ca` cannot
-work while `rexdalemobilewash.ca` sits on GoDaddy nameservers
-(`ns41`/`ns42.domaincontrol.com`): the Cloudflare zone is `pending`, so
-Cloudflare is not authoritative and creates no record, and the zone is `full` on
-a Free plan, so CNAME setup is unavailable. Only a nameserver move would work.
-It is not safe yet — the Cloudflare zone holds **zero records** while the live
-zone carries Microsoft 365 mail (MX to Outlook, SPF, Teams/Skype SRV and CNAME
-records), so a cutover today would take down the client's email along with the
-site. That is gate 6 of the migration (`wp-10-confirm-dns-is-ours`).
+A custom domain was tried and removed, at a time when `rexdalemobilewash.ca` sat
+on GoDaddy nameservers and the Cloudflare zone was `pending` with zero records.
+**That is no longer the case.** Verified 2026-09-08 over public DNS:
+
+```
+NS   dee.ns.cloudflare.com / josh.ns.cloudflare.com   (was ns69/ns70.domaincontrol.com)
+MX   0 rexdalemobilewash-ca.mail.protection.outlook.com
+TXT  "v=spf1 include:secureserver.net -all"
+TXT  "NETORG7588905.onmicrosoft.com"
+```
+
+The nameservers moved, the zone is `active`, and the Microsoft 365 mail records
+came across intact — so gate 6 (`wp-10-confirm-dns-is-ours`) is satisfied and
+Cloudflare is authoritative. That is what made `img-lp.rexdalemobilewash.ca`
+possible. A staging hostname is still not set up; it would need
+`staging.lp.rexdalemobilewash.ca`, which is two labels below the apex and so is
+**not covered by the free Universal SSL certificate** — the same constraint that
+shaped the image hostname. `workers.dev` remains the only staging URL.
 
 Every response carries `X-Robots-Tag: noindex, nofollow`, set in
 `worker/index.js`, so staging cannot compete with the live site in search.
@@ -227,21 +243,24 @@ build runs and absent when the route executes: the build passes and the form
 
 ### Client mail, re-proven after this change
 
-Unchanged, as it must be — GoDaddy nameservers, Outlook MX, M365 records:
+Unchanged by anything in this repo. The nameservers have since moved to
+Cloudflare (see **Staging** above); the mail records themselves are the same:
 
 ```
-NS    ns41/ns42.domaincontrol.com
+NS    dee/josh.ns.cloudflare.com     (was ns41/ns42.domaincontrol.com)
 MX    rexdalemobilewash-ca.mail.protection.outlook.com
 TXT   v=spf1 include:secureserver.net -all
 TXT   NETORG7588905.onmicrosoft.com
+TXT   _dmarc  v=DMARC1; p=none;
 ```
 
 **Pre-existing, not caused by this work:** that SPF record authorises GoDaddy
 (`secureserver.net`) with a hard fail `-all`, but the domain's mail is on
 Microsoft 365, which is *not* included. Mail sent from their tenant can fail
-SPF at strict receivers. There is also no `_dmarc` record. Worth raising with
-whoever owns the client's mail — it is a DNS edit on their side, deliberately
-outside what this endpoint touches.
+SPF at strict receivers. A `_dmarc` record now exists at `p=none` — monitoring
+only, so it enforces nothing, but it does mean reports can be turned on. Worth
+raising with whoever owns the client's mail — it is a DNS edit on their side,
+deliberately outside what this endpoint touches.
 
 ## Two deliberate departures from the live site
 
@@ -262,16 +281,103 @@ message.)*
 
 ## Images
 
-Still hotlinked to `lp.rexdalemobilewash.ca/wp-content/uploads/2025/03`. No
-image store has been created and nothing has been copied. Worth knowing before
-this is pointed anywhere: if Cloudflare hotlink protection is on for that zone,
-these break cross-origin, including on a `*.up.railway.app` preview.
+**On Backblaze B2 (AD-9).** Nothing on this site requests an image from the old
+WordPress host any more, and nothing is served out of `public/`.
 
-23 files, ~1.51 MB. `Bulk-Water-Delivery.webp` (139 KB) is genuinely unused. The
-five `Rexdale-Mobile-Wash-Banner-*.webp` **are** used (hero slideshow) even
-though they never appear in a network request on the live site.
-`cropped-Rexdale-Mobile-Wash-Favicon.png` is 225 KB — the largest file on the
-site, for a favicon. Worth regenerating.
+| | |
+|---|---|
+| Bucket | `lp-rexdalemobilewash-img` — public, its own bucket, not shared with the main site |
+| Region / S3 endpoint | `us-east-005` / `s3.us-east-005.backblazeb2.com` |
+| Native origin | `f005.backblazeb2.com` |
+| Public hostname | `https://img-lp.rexdalemobilewash.ca` |
+| Transform rule | `img-lp.rexdalemobilewash.ca -> B2 bucket lp-rexdalemobilewash-img (AD-9)` |
+| Contents | 29 files, 3,069,624 bytes |
+| Lifecycle | keep only the last version of a file |
+
+### Why `img-lp` and not `img.lp.rexdalemobilewash.ca`
+
+`img.rexdalemobilewash.ca` already exists in this zone and already points at the
+main site's bucket (`rexdalemobilewash-img`), so this site needed its own name.
+The convention would be `img.lp.rexdalemobilewash.ca`, and it does not work here:
+Cloudflare's free Universal SSL certificate covers `rexdalemobilewash.ca` and
+`*.rexdalemobilewash.ca`, but **not a second label below the apex** — that host
+would serve a certificate error until the zone buys Advanced Certificate
+Manager. `img-lp` is one label, so the existing certificate already covers it.
+
+The two image hosts are fully independent: separate buckets, separate CNAMEs,
+separate transform rules. The main site's rule was not touched.
+
+### Keys keep their WordPress paths
+
+`wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo.webp`, not a re-organised
+name. That makes the rewrite host-only, keeps the two sides reconcilable file
+for file, and means a later `rclone` pass against the old site compares cleanly.
+The `/pressure-washing/` page's photography keeps the `pw-assets/img/` prefix it
+already had; its **fonts stay in `public/`** — they are not images.
+
+### One place names the host
+
+`src/lib/img.ts`. Never build an image URL by hand, and never reference
+`*.backblazeb2.com` in page code — that path skips Cloudflare and bills the
+client for every download.
+
+```astro
+---
+import { upload, img } from '../lib/img';
+---
+<img src={upload('Graffiti-Removal.webp')} width="600" height="400" alt="…" />
+<img src={img('pw-assets/img/logo.webp')} width="433" height="433" alt="…" />
+```
+
+`PUBLIC_IMG_BASE` overrides the default host (see `.env.example`). It must be a
+**build** variable, never a Worker secret: every page is prerendered, so a
+runtime secret is not read during the build and the URLs come out
+`undefined/...`.
+
+### The build enforces it
+
+`npm run build` is `astro build && node bin/check-images.mjs`. The check fails
+the build on any image served from a host other than
+`img-lp.rexdalemobilewash.ca`, and it looks in all eight places an image address
+hides — `<img src>`, `srcset`, `<source>`, `<link rel=preload as=image>`,
+`og:image`/`twitter:image`, `rel=icon`, `url()` in CSS and in inline styles, and
+JSON-LD. **If a build fails on this, the check is right** — put the file in the
+bucket, do not add the host to `allow` in `image-hosts.json`.
+
+Current output:
+
+```
+AD-9 IMAGE CHECK — canonical host img-lp.rexdalemobilewash.ca
+
+  files scanned ...................... 6
+  image references ................... 44
+  on img-lp.rexdalemobilewash.ca ..... 44
+  on an allowed third party .......... 0
+  off-host ........................... 0
+  local, not in the bucket ........... 0
+  files mentioning //lp.rexdalemobilewash.ca/wp-content/uploads  0
+
+AD-9 CHECK PASSED.
+```
+
+Verified against fixtures as well as the real build: a `srcset` entry, an
+`og:image`, an inline `background-image` and a `url()` in a `.css` file were
+each planted in `dist/` and all four were caught and named, while a `data:` URI,
+an `/_astro/` bundle asset and a `.woff2` font were correctly ignored.
+
+### Replacing an image later
+
+Prefer a **new filename** — no cache purge, correct everywhere the moment the
+code change deploys. Same filename works too, but Cloudflare will keep serving
+the old bytes for up to the edge TTL (31 days), so purge that exact URL under
+Caching → Configuration → Purge Custom URL and re-check in a private window.
+
+### Still worth doing
+
+`cropped-Rexdale-Mobile-Wash-Favicon.png` is 225 KB — the largest file in the
+bucket, for a favicon. Regenerating it is a bucket upload plus a purge.
+`Bulk-Water-Delivery.webp` on the old host is unused and was deliberately not
+copied.
 
 ## Open items
 
@@ -284,8 +390,11 @@ site, for a favicon. Worth regenerating.
   live DOM. The full class name was truncated in the DOM read so the breakpoint
   it hides at is unknown; the section does render in page source, so it is built
   visible here. Confirm against client intent.
-- **No infrastructure.** No GitHub org, no repo, no Railway service, no DNS, no
-  image store. Nothing outside this folder was touched and the live site is
-  unmodified.
+- **Infrastructure, as it now stands.** GitHub org and repo exist; DNS is on
+  Cloudflare and authoritative; the staging Worker is deployed; the image store
+  is the B2 bucket `lp-rexdalemobilewash-img` served at
+  `img-lp.rexdalemobilewash.ca`. The live WordPress site is still untouched and
+  `lp.rexdalemobilewash.ca` still resolves to it — the domain has not been
+  pointed at the Worker.
 - **No day-2 procedure exists** anywhere in the toolchain for shipping a change
   to a live site. Flag at handover.

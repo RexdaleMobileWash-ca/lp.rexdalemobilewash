@@ -9,16 +9,15 @@
  * design intends.
  */
 import EstimateForm from './EstimateForm.astro';
-
-const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
+import { upload } from '../lib/img';
 
 /* background_slideshow_gallery order, ids 118-122 */
 const slides = [
-  `${BASE}/Rexdale-Mobile-Wash-Banner-5.webp`,
-  `${BASE}/Rexdale-Mobile-Wash-Banner-4.webp`,
-  `${BASE}/Rexdale-Mobile-Wash-Banner-3.webp`,
-  `${BASE}/Rexdale-Mobile-Wash-Banner-2.webp`,
-  `${BASE}/Rexdale-Mobile-Wash-Banner-1.webp`,
+  upload('Rexdale-Mobile-Wash-Banner-5.webp'),
+  upload('Rexdale-Mobile-Wash-Banner-4.webp'),
+  upload('Rexdale-Mobile-Wash-Banner-3.webp'),
+  upload('Rexdale-Mobile-Wash-Banner-2.webp'),
+  upload('Rexdale-Mobile-Wash-Banner-1.webp'),
 ];
 ---
 

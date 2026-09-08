@@ -58,11 +58,34 @@ preserves it.
 - Staging: `https://staging-lp-rexdalemobilewash.ash-47a.workers.dev`
   (Worker `staging-lp-rexdalemobilewash`, sends `X-Robots-Tag: noindex, nofollow`)
 - Public: `https://lp.rexdalemobilewash.ca` — still the **old WordPress /
-  Elementor site**. The Astro build is not public yet; the domain move is
-  gate 6 (`wp-10-confirm-dns-is-ours`) and is blocked on the client's
-  Microsoft 365 mail records.
+  Elementor site**. The Astro build is not public yet.
 
 A change deployed to staging reaches no real visitors.
+
+**DNS has moved and the old note here was wrong.** `rexdalemobilewash.ca` is on
+Cloudflare nameservers (`dee`/`josh.ns.cloudflare.com`), the zone is `active`,
+and the Microsoft 365 records came across intact — gate 6
+(`wp-10-confirm-dns-is-ours`) is satisfied, not blocked. Verify before relying
+on it; the previous version of this file claimed the opposite.
+
+## Images are on Backblaze B2 — the build enforces it
+
+Bucket `lp-rexdalemobilewash-img` (`us-east-005`), served through Cloudflare at
+`https://img-lp.rexdalemobilewash.ca`. `npm run build` runs
+`site/bin/check-images.mjs` and **exits non-zero** if any image in `dist/` comes
+from another host.
+
+If a build fails on it, the check is right. Put the file in the bucket; do not
+add a host to `allow` in `site/image-hosts.json` to get a deploy out.
+
+`site/src/lib/img.ts` is the only place the hostname is named — use `upload()`
+for anything that came off the old WordPress install and `img()` for everything
+else. Never reference `*.backblazeb2.com` in page code: that skips Cloudflare
+and bills the client for every download.
+
+The hostname is `img-lp`, not `img.lp.…`, because `img.rexdalemobilewash.ca` is
+already the main site's bucket and the free Universal SSL certificate does not
+cover a second label below the apex.
 
 ## Analytics currently on the public WordPress site
 

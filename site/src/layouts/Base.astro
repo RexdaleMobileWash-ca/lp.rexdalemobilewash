@@ -8,6 +8,8 @@
  *   post-110.css page        (.elementor-110)
  * Elementor element ids are kept in comments beside each ported block.
  */
+import { upload } from '../lib/img';
+
 interface Props {
   title?: string;
   description?: string;
@@ -17,8 +19,13 @@ interface Props {
 const TITLE = 'Fast & Affordable Mobile Wash Services in Toronto';
 const DESC =
   'Rexdale Mobile Wash provides top-rated graffiti removal & storefront cleaning in Toronto. Request a quote.';
-const SHARE =
-  'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Share-Image.jpg';
+/**
+ * og:image is the one image address that leaves the site: Facebook, LinkedIn
+ * and Slack copy it into their unfurl caches and keep serving it long after the
+ * old WordPress host is switched off. It has to be the bucket, not the old host.
+ */
+const SHARE = upload('Rexdale-Mobile-Wash-Share-Image.jpg');
+const FAVICON = upload('cropped-Rexdale-Mobile-Wash-Favicon.png');
 
 const {
   title = TITLE,
@@ -52,10 +59,7 @@ const {
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link
-      rel="icon"
-      href="https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon.png"
-    />
+    <link rel="icon" href={FAVICON} />
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />

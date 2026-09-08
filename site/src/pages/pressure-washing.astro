@@ -22,11 +22,18 @@
  * design system (Barlow/Oswald, blue/red) from the rest of this site
  * (Montserrat/Source Sans), and Base's global styles would fight it.
  */
+import { img } from '../lib/img';
+
+/* AD-9: this page's photography lives in the bucket like everything else,
+   under the pw-assets/img/ prefix it already had. Fonts stay in public/ —
+   they are not images and the check does not cover them. */
+const PW = img('pw-assets/img');
+
 const CANONICAL = 'https://lp.rexdalemobilewash.ca/pressure-washing/';
 const TITLE = 'Commercial Pressure Washing Toronto | Rexdale Mobile Wash';
 const DESC =
   'Commercial & industrial pressure washing across the GTA since 1966. Building exteriors, plant and warehouse floors, power scrubbing. Free on-site quote.';
-const SHARE = 'https://lp.rexdalemobilewash.ca/pw-assets/img/hero-building-exterior.webp';
+const SHARE = `${PW}/hero-building-exterior.webp`;
 
 // Structured data, carried over from the design unchanged: it describes the
 // business and the FAQ answers rendered further down the page.
@@ -165,7 +172,7 @@ const FAQ_LD = {
     <title>{TITLE}</title>
     <meta name="description" content={DESC} />
     <link rel="canonical" href={CANONICAL} />
-    <link rel="icon" href="/pw-assets/img/logo.webp" />
+    <link rel="icon" href={`${PW}/logo.webp`} />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content={TITLE} />
@@ -179,7 +186,7 @@ const FAQ_LD = {
 
     <!-- The hero background is the LCP element and is set in CSS, so it is not
          discoverable by the preload scanner without this. -->
-    <link rel="preload" as="image" href="/pw-assets/img/hero-building-exterior.webp" />
+    <link rel="preload" as="image" href={`${PW}/hero-building-exterior.webp`} />
 
     <!-- Self-hosted Barlow + Oswald, subset exactly as Google Fonts serves them.
          unicode-range keeps an English page to the latin faces only. -->
@@ -576,7 +583,7 @@ const FAQ_LD = {
     <header style="position:sticky;top:0;z-index:60;background:#FFFFFF;border-bottom:3px solid #0A4C8A;box-shadow:0 2px 10px rgba(16,24,32,.10)">
       <div style="max-width:1240px;margin:0 auto;padding:10px clamp(14px,4vw,40px);display:flex;align-items:center;justify-content:space-between;gap:12px">
         <a href="#top" style="display:flex;align-items:center;gap:clamp(9px,1.6vw,14px);text-decoration:none;line-height:1;flex-shrink:1;min-width:0">
-          <img src="/pw-assets/img/logo.webp" width="433" height="433" alt="Rexdale Mobile Wash Inc. — commercial and industrial pressure washing, established 1966" style="width:clamp(44px,9vw,62px);height:auto;flex:0 0 auto">
+          <img src={`${PW}/logo.webp`} width="433" height="433" alt="Rexdale Mobile Wash Inc. — commercial and industrial pressure washing, established 1966" style="width:clamp(44px,9vw,62px);height:auto;flex:0 0 auto">
           <span style="display:flex;flex-direction:column;min-width:0">
           <span style="font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(15px,3.1vw,25px);color:#0A4C8A">Rexdale Mobile Wash</span>
           <span style="font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.22em;font-size:clamp(8.5px,1.6vw,11px);color:#5A646E;margin-top:5px">Commercial &amp; industrial · since 1966</span>
@@ -591,7 +598,7 @@ const FAQ_LD = {
 
     <!-- HERO — background: crew washing a large commercial/industrial building exterior, equipment visible (16:9) -->
     <section id="top" style="position:relative;background:#F2F4F5;color:#101820;overflow:hidden">
-      <div aria-hidden="true" style="position:absolute;inset:0;background-image:url(&quot;/pw-assets/img/hero-building-exterior.webp&quot;);background-size:cover;background-position:62% 45%"></div>
+      <div aria-hidden="true" style={`position:absolute;inset:0;background-image:url('${PW}/hero-building-exterior.webp');background-size:cover;background-position:62% 45%`}></div>
       <div aria-hidden="true" style="position:absolute;inset:0;" class="pw-hero-scrim"></div>
       <div style="position:relative;max-width:1240px;margin:0 auto;padding:clamp(56px,9vw,104px) clamp(18px,5vw,40px) clamp(40px,6vw,88px);display:grid;gap:clamp(28px,4vw,52px);grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));align-items:start">
         <div style="min-width:0">
@@ -780,8 +787,8 @@ const FAQ_LD = {
         <!-- INDUSTRIAL 4:3 — plant or warehouse interior mid-clean, machinery or racking in frame -->
         <div style="min-width:0">
         <div role="group" aria-label="Photo carousel" style="position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;border:1px solid #D3D7D9;background:#E4E8EA">
-          <img src="/pw-assets/img/warehouse-interior.webp" width="1240" height="1653" alt="Rexdale crew on scissor lifts pressure washing the interior of a warehouse, wet concrete floor in foreground" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:1">
-          <img src="/pw-assets/img/parking-garage-deck.webp" width="1240" height="1653" alt="Two technicians washing the concrete deck of an underground parking garage at a Costco Wholesale" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:0">
+          <img src={`${PW}/warehouse-interior.webp`} width="1240" height="1653" alt="Rexdale crew on scissor lifts pressure washing the interior of a warehouse, wet concrete floor in foreground" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:1">
+          <img src={`${PW}/parking-garage-deck.webp`} width="1240" height="1653" alt="Two technicians washing the concrete deck of an underground parking garage at a Costco Wholesale" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:0">
           <div style="position:absolute;bottom:6px;left:0;right:0;display:flex;justify-content:center;gap:2px">
             <button type="button" data-c="1" data-i="0" data-click="pickSlide" aria-label="Show photo 1 of 2: warehouse interior" style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer"><span aria-hidden="true" style="display:block;width:11px;height:11px;border-radius:50%;background:#FFFFFF;box-shadow:0 0 0 1px rgba(16,24,32,.35)"></span></button>
             <button type="button" data-c="1" data-i="1" data-click="pickSlide" aria-label="Show photo 2 of 2: parking garage deck" style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer"><span aria-hidden="true" style="display:block;width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.45);box-shadow:0 0 0 1px rgba(16,24,32,.35)"></span></button>
@@ -803,8 +810,8 @@ const FAQ_LD = {
           <!-- EXTERIOR 4:3 — commercial building face, before/after pair -->
           <div style="min-width:0">
         <div role="group" aria-label="Photo carousel" style="position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;border:1px solid #D3D7D9;background:#E4E8EA">
-          <img src="/pw-assets/img/silos-boom-lift.webp" width="1240" height="1653" alt="Boom lift alongside two Primo silos while the exterior is pressure washed from height" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:1">
-          <img src="/pw-assets/img/storefront-night.webp" width="1240" height="1653" alt="Crew washing the glass canopy and storefront of a Mr. Greek restaurant at night from a boom lift" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:0">
+          <img src={`${PW}/silos-boom-lift.webp`} width="1240" height="1653" alt="Boom lift alongside two Primo silos while the exterior is pressure washed from height" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:1">
+          <img src={`${PW}/storefront-night.webp`} width="1240" height="1653" alt="Crew washing the glass canopy and storefront of a Mr. Greek restaurant at night from a boom lift" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity 900ms ease;opacity:0">
           <div style="position:absolute;bottom:6px;left:0;right:0;display:flex;justify-content:center;gap:2px">
             <button type="button" data-c="2" data-i="0" data-click="pickSlide" aria-label="Show photo 1 of 2: industrial silos" style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer"><span aria-hidden="true" style="display:block;width:11px;height:11px;border-radius:50%;background:#FFFFFF;box-shadow:0 0 0 1px rgba(16,24,32,.35)"></span></button>
             <button type="button" data-c="2" data-i="1" data-click="pickSlide" aria-label="Show photo 2 of 2: restaurant storefront at night" style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer"><span aria-hidden="true" style="display:block;width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.45);box-shadow:0 0 0 1px rgba(16,24,32,.35)"></span></button>
@@ -870,7 +877,7 @@ const FAQ_LD = {
           <a href="#quote" style="display:inline-flex;align-items:center;justify-content:center;background:#0A4C8A;color:#FFFFFF;font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:16px;padding:16px 24px;border-radius:2px;text-decoration:none;min-height:54px" class="h4">Request a Concrete Cleaning Quote</a>
         </div>
         <!-- CONCRETE 4:3 — oil-stained concrete, before/after pair -->
-        <img src="/pw-assets/img/loading-dock-concrete.webp" width="1240" height="1653" alt="Technician pressure washing a distribution centre loading dock, freshly washed concrete apron in foreground" loading="lazy" decoding="async" style="width:100%;aspect-ratio:3/4;object-fit:cover;min-width:0;border:1px solid #D3D7D9;background:#E4E8EA;">
+        <img src={`${PW}/loading-dock-concrete.webp`} width="1240" height="1653" alt="Technician pressure washing a distribution centre loading dock, freshly washed concrete apron in foreground" loading="lazy" decoding="async" style="width:100%;aspect-ratio:3/4;object-fit:cover;min-width:0;border:1px solid #D3D7D9;background:#E4E8EA;">
       </div>
     </section>
 
@@ -904,7 +911,7 @@ const FAQ_LD = {
             <p style="font-size:15.5px;line-height:1.65;color:#B9C6D2;margin:0;text-wrap:pretty">We use biodegradable, environmentally safe cleaning agents, and we contain and manage wash water in line with local discharge requirements, so cleaning your property doesn't create a compliance problem on your site.</p>
           </div>
         </div>
-          <img src="/pw-assets/img/silo-cladding-wash.webp" width="1086" height="1449" alt="Two Rexdale technicians washing a silo and building cladding, one from a boom lift and one from a platform" loading="lazy" decoding="async" style="flex:1 1 260px;align-self:stretch;min-width:0;max-width:400px;width:100%;height:auto;min-height:320px;object-fit:cover;border:1px solid rgba(255,255,255,.22);background:#0B4A85">
+          <img src={`${PW}/silo-cladding-wash.webp`} width="1086" height="1449" alt="Two Rexdale technicians washing a silo and building cladding, one from a boom lift and one from a platform" loading="lazy" decoding="async" style="flex:1 1 260px;align-self:stretch;min-width:0;max-width:400px;width:100%;height:auto;min-height:320px;object-fit:cover;border:1px solid rgba(255,255,255,.22);background:#0B4A85">
         </div>
       </div>
     </section>
@@ -1165,7 +1172,7 @@ const FAQ_LD = {
     <footer style="background:#12171C;color:#AEBCC8;padding:clamp(28px,3.5vw,40px) 0 calc(clamp(28px,3.5vw,40px) + 76px)">
       <div style="max-width:1240px;margin:0 auto;padding:0 clamp(18px,5vw,40px);display:flex;flex-wrap:wrap;gap:14px 32px;justify-content:space-between;align-items:flex-start">
         <div style="display:flex;align-items:flex-start;gap:16px;min-width:0">
-          <img src="/pw-assets/img/logo.webp" width="433" height="433" alt="Rexdale Mobile Wash Inc. logo" loading="lazy" style="width:64px;height:auto;flex:0 0 auto">
+          <img src={`${PW}/logo.webp`} width="433" height="433" alt="Rexdale Mobile Wash Inc. logo" loading="lazy" style="width:64px;height:auto;flex:0 0 auto">
           <div style="min-width:0">
           <p style="font-size:15px;line-height:1.6;margin:0 0 6px;color:#DCE3EA">Rexdale Mobile Wash Inc. · 41 Shaft Rd, Etobicoke, ON M9W 4M3 · T: <a href="tel:+14162446497" style="color:#FFFFFF;font-weight:600;white-space:nowrap;text-decoration-color:#FF5C63">1 (416) 244-6497</a> · E: <a href="mailto:dispatch@rexdalemobilewash.ca" style="color:#FFFFFF;font-weight:600;text-decoration-color:#FF5C63">dispatch@rexdalemobilewash.ca</a></p>
           <p style="font-size:14.5px;line-height:1.6;margin:0">Serving commercial and industrial properties across the GTA since 1966.</p>

@@ -1,0 +1,17 @@
+{
+  "canonical": "img-lp.rexdalemobilewash.ca",
+  "allow": [],
+  "oldHost": "//lp.rexdalemobilewash.ca/wp-content/uploads",
+  "_note": [
+    "canonical: Cloudflare-proxied CNAME onto the B2 bucket lp-rexdalemobilewash-img.",
+    "allow: empty on purpose. Every entry is a hotlink with permission — if the",
+    "image is the client's, it belongs in the bucket, not in this list.",
+    "oldHost is not the bare hostname, and both halves of that matter.",
+    "The leading // is required: without it the string is a substring of",
+    "//img-lp.rexdalemobilewash.ca and every page reports as a hit.",
+    "The /wp-content/uploads suffix is required because lp.rexdalemobilewash.ca",
+    "is BOTH the WordPress host being migrated off and this site's own future",
+    "address, so every canonical link would otherwise be reported. The upload",
+    "path is the part that dies when the old site is switched off."
+  ]
+}

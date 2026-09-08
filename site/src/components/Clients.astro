@@ -6,18 +6,18 @@
  * injected by JavaScript, invisible to crawlers and screen readers. Rebuilt as
  * real <img> elements with alt text.
  */
-const BASE = 'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03';
+import { upload } from '../lib/img';
 
 const logos = [
-  { src: `${BASE}/UPS-Logo.webp`, alt: 'UPS' },
-  { src: `${BASE}/Pepsico-Logo.webp`, alt: 'PepsiCo' },
-  { src: `${BASE}/Loblaws-Logo.webp`, alt: 'Loblaws' },
-  { src: `${BASE}/Pizza-Pizza-Logo.webp`, alt: 'Pizza Pizza' },
-  { src: `${BASE}/Sofina-Logo.webp`, alt: 'Sofina Foods' },
-  { src: `${BASE}/Car-Wraps-CA-Logo.webp`, alt: 'Car Wraps CA' },
-  { src: `${BASE}/Toronto-Trucking-Association-Logo.webp`, alt: 'Toronto Trucking Association' },
-  { src: `${BASE}/Toronto-Transportation-Club-Logo.webp`, alt: 'Toronto Transportation Club' },
-  { src: `${BASE}/ISN-Logo.webp`, alt: 'ISN' },
+  { src: upload('UPS-Logo.webp'), alt: 'UPS' },
+  { src: upload('Pepsico-Logo.webp'), alt: 'PepsiCo' },
+  { src: upload('Loblaws-Logo.webp'), alt: 'Loblaws' },
+  { src: upload('Pizza-Pizza-Logo.webp'), alt: 'Pizza Pizza' },
+  { src: upload('Sofina-Logo.webp'), alt: 'Sofina Foods' },
+  { src: upload('Car-Wraps-CA-Logo.webp'), alt: 'Car Wraps CA' },
+  { src: upload('Toronto-Trucking-Association-Logo.webp'), alt: 'Toronto Trucking Association' },
+  { src: upload('Toronto-Transportation-Club-Logo.webp'), alt: 'Toronto Transportation Club' },
+  { src: upload('ISN-Logo.webp'), alt: 'ISN' },
 ];
 ---
 

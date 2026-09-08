@@ -6,8 +6,9 @@
  * at 0.85 opacity, plus background-attachment:fixed above 1025px. It is not a
  * flat blue band.
  */
-const BG =
-  'https://lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Banner-4.webp';
+import { upload } from '../lib/img';
+
+const BG = upload('Rexdale-Mobile-Wash-Banner-4.webp');
 ---
 
 <section class="about" id="about" style={`--about-bg:url('${BG}')`}>
