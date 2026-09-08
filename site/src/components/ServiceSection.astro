@@ -193,5 +193,19 @@ const {
     .svc__copy {
       order: -1;
     }
+    /* The heading, body and note all centre at this width, so a left-hugging
+       button is the odd one out — centre it too, as About and thank-you
+       already do. Centring has to be done on the button itself rather than
+       with text-align on .svc__copy: .ticks li is a flex row, and an
+       inherited text-align would re-align the wrapped bullet text.
+       Margins are collapsed against .ticks/.svc__note's 1.25em below, so the
+       gap above lands at 1.75em; the 1.5em below clears the photo that
+       follows, since .svc__copy leads at this width via order:-1. */
+    .svc__copy .btn {
+      display: block;
+      width: fit-content;
+      margin-block: 1.75em 1.5em;
+      margin-inline: auto;
+    }
   }
 </style>
