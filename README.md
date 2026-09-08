@@ -145,12 +145,18 @@ Use the scripts. Once a config defines environments, a bare `wrangler deploy`
 warns that no target was given and then deploys the top level — production —
 anyway; the scripts name the environment explicitly.
 
-**Production is deployed and has its secret, but no hostname.**
-`lp-rexdalemobilewash` is uploaded, `RESEND_API_KEY` is set on it (its own key —
-a secret belongs to one Worker, and staging's is a different key), and
-`workers_dev: false` with no Custom Domain means **nothing can reach it**.
-`wrangler deploy` reports `No targets deployed`, which is correct. Attaching the
-domain is the only remaining step, and it is the one in *Going live* below.
+**Production is live on `lp.rexdalemobilewash.ca`** since 2026-09-08 — see
+*Going live* below. `workers_dev: false` means the Custom Domain is the only way
+to reach it, which is deliberate: a workers.dev URL would be a second, indexable
+copy of the live site competing with it in search.
+
+`RESEND_API_KEY` is set on it, and it is **its own key** — a secret belongs to
+one Worker, and staging's is a different key, so revoking one cannot take the
+other down.
+
+**A production deploy is public immediately.** There is no CI and no review step
+between `npm run deploy` and real visitors, so: build, deploy staging, look at
+it, then deploy production.
 
 The contact form was proven end to end against it before the cutover, over
 `wrangler dev --remote --env ""`, which runs the real Worker with the real
@@ -215,9 +221,16 @@ re-derived.** A Custom Domain cannot be created over an existing record, so that
 record was deleted to make room, and Cloudflare does not keep what it deletes.
 
 **To roll back:** delete the Custom Domain, then re-create `A 185.206.163.79`,
-proxied. The old WordPress site is still running and still answering on that
-address — it is not switched off until gate 16 (`wp-20-switch-off-old-site`),
-which is the whole reason the order was arranged this way.
+proxied. The WordPress install was not touched by the cutover and is not
+switched off until gate 16 (`wp-20-switch-off-old-site`), which is the whole
+reason the order was arranged this way.
+
+**Whether that origin still answers has NOT been verified**, and an earlier note
+here claiming it had was wrong. `curl --resolve` is silently ignored from the
+build environment — its egress proxy does its own DNS, so a request aimed at a
+deliberately bogus IP still returned the live site. Every "direct to origin"
+check made from here was really measuring Cloudflare. Confirm the old install is
+still up in the Hostinger panel before treating this rollback as ready.
 
 ### What was done
 
@@ -670,10 +683,10 @@ copied.
   both its `workers.dev` URL and `staging.lp.rexdalemobilewash.ca`; the image
   store is the B2 bucket `lp-rexdalemobilewash-img` served at
   `img-lp.rexdalemobilewash.ca`. The production Worker `lp-rexdalemobilewash`
-  is deployed with its own `RESEND_API_KEY` and its form is proven, but has
-  **no hostname** — nothing reaches it. The live WordPress site is still
-  untouched and `lp.rexdalemobilewash.ca` still resolves to it — the domain has
-  not been pointed at the Worker. Attaching the Custom Domain is the single
-  remaining step; see *Going live* for the procedure and the rollback record.
+  holds `lp.rexdalemobilewash.ca` as a Custom Domain and **is the live site**
+  (gate 13, 2026-09-08), with its own `RESEND_API_KEY` and its form proven
+  against the live domain. Old image addresses and the old author archive
+  redirect (gate 14). Gate 15, the live sweep, has not run.
+  See *Going live* for the rollback record.
 - **No day-2 procedure exists** anywhere in the toolchain for shipping a change
   to a live site. Flag at handover.
