@@ -68,6 +68,26 @@ is in `src/pages/pressure-washing.astro`, plus its fonts in
 `public/pw-assets/fonts/` and its photography in the B2 bucket under the
 `pw-assets/img/` prefix.
 
+### `/pressurewashing/` is an alias, not a second page
+
+The un-hyphenated spelling **301s to `/pressure-washing/`**, with or without a
+trailing slash. It is not a legacy WordPress address — neither spelling ever
+existed on the old site — it exists because that is the spelling people reach
+for, ad destinations included.
+
+A redirect rather than a second copy of the page: two URLs serving identical
+content split the analytics and leave search engines to pick a canonical.
+
+**The query string is carried across**, and that is the point of the entry
+rather than an incidental nicety: an Ads click arrives with `gclid`, and
+dropping it breaks conversion attribution for exactly the traffic the alias is
+there to catch.
+
+It lives in `ALIASES` in `worker/index.js`, not in Astro's `redirects` config,
+because the build is `output: 'static'` — there Astro emits a meta-refresh HTML
+page rather than a real redirect, and a paid click deserves a 301, not a page
+that loads and then bounces the visitor. Further aliases go in that same map.
+
 The design arrived as a single 30 MB HTML file: a React runtime that rendered a
 template at load time, with every image and font inlined as base64. Neither half
 of that shipped — Cloudflare rejects a static asset over 25 MiB, and a page

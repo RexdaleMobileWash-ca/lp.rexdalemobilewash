@@ -43,10 +43,39 @@ function isPreviewHostname(hostname) {
   return hostname.endsWith('.workers.dev') || hostname.startsWith('staging.');
 }
 
+/**
+ * Alias path -> canonical path. Matched with any trailing slash stripped, so
+ * one entry covers both `/pressurewashing` and `/pressurewashing/`.
+ *
+ * `/pressurewashing/` is the un-hyphenated spelling of the commercial landing
+ * page. It is NOT a legacy WordPress address — neither spelling ever existed on
+ * the old site — it is an alias for traffic that reaches for the obvious
+ * spelling, ad destinations included.
+ *
+ * A 301 rather than a second copy of the page: two URLs serving identical
+ * content split the analytics and make search engines pick a canonical for us.
+ *
+ * Handled here rather than as an Astro `redirects` entry because the build is
+ * `output: 'static'`, where Astro emits a meta-refresh HTML page instead of a
+ * real redirect. A paid click deserves a 301, not a page that loads and then
+ * bounces the visitor.
+ */
+const ALIASES = new Map([['/pressurewashing', '/pressure-washing/']]);
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const noindex = env.NOINDEX === 'true' || isPreviewHostname(url.hostname);
+
+    // `url.search` is carried across deliberately: an Ads click arrives with
+    // gclid, and dropping it breaks conversion attribution for exactly the
+    // traffic this alias exists to catch.
+    const canonical = ALIASES.get(url.pathname.replace(/\/+$/, '') || '/');
+    if (canonical) {
+      const headers = { Location: new URL(canonical + url.search, url).toString() };
+      if (noindex) headers['X-Robots-Tag'] = 'noindex, nofollow';
+      return new Response(null, { status: 301, headers });
+    }
 
     if (url.pathname === '/api/contact' || url.pathname === '/api/contact/') {
       const res = await handleContact(request, env, ctx);
