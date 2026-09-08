@@ -52,6 +52,9 @@ site/
   standalone/   flat single-file HTML, CSS inlined, opens from file://
   bin/make-standalone.mjs   regenerates standalone/ from dist/
   bin/check-images.mjs      AD-9 enforcement, runs inside `npm run build`
+  bin/live-check.mjs        gate 15 — sweeps the SERVED site, not dist/
+  bin/live-urls.txt         the address list it sweeps (a reconstruction)
+  bin/live-sweep.tsv        last sweep report
 bin/where.py    gate-record reader from the earlier scaffolding attempt
 ```
 
@@ -379,6 +382,76 @@ dead-ending.
 
 The match is exact, not a `/author/*` prefix — one author existed, and a
 wildcard would swallow paths nobody has asked for.
+
+## Gate 15 — the live sweep
+
+```bash
+cd site && npm run check:live      # or: node bin/live-check.mjs [base-url]
+```
+
+Checks the site that is **served**, not the one in `dist/`, because a redirect
+rule, a transform rule, an edge cache or a Worker route can put a different
+response in front of a visitor than the build produced. Three blocks: the URL
+sweep, the live image check, the live SEO check. Non-zero exit blocks gate 16.
+
+`site/bin/live-urls.txt` is the address list and `site/bin/live-sweep.tsv` the
+last report. **The list is a reconstruction**, built from the old site's own HTML
+captured through Cloudflare shortly before the cutover — the canonical gate 0.4
+record is in the command repo. The old install had no sitemap and its REST API
+is gone, so an orphan page nothing linked to would not appear. Reconcile before
+treating a pass as complete.
+
+### Result, 2026-09-08
+
+```
+  addresses in the list ..... 46
+  200 direct ................  4
+  301 -> 200 ................ 33
+  404 by decision ...........  9
+  FAILED ....................  0
+
+  image references .......... 44, all on img-lp   off-host 0
+  cf-cache-status ........... present  <- proxied; MISS is fine, presence is the test
+  out-of-bucket path ........ 404      <- gate 7 transform rule still scoped
+  canonicals ................ 4 of 4 on the real domain, trailing slash matches
+  JSON-LD ................... 2 blocks, 2 parse
+```
+
+### What the sweep caught
+
+**16 of the 30 old media addresses were 301 → 404.** WordPress generated a
+resized copy of every upload with the dimensions in the filename
+(`Graffiti-Removal-300x220.webp`), only the originals were copied to B2 at gate
+5, and the gate 14 wildcard sent every derivative to a key that does not exist.
+Those addresses are the ones in Google Images and in anything that hotlinked a
+thumbnail — broken silently, in the way this gate exists to catch.
+
+Fixed in `worker/index.js`: `WP_SIZE_SUFFIX` strips the size before redirecting,
+so a derivative lands on the full-size original. Safe because it was checked
+rather than assumed — **not one of the 29 objects in the bucket has a `-WxH`
+key**, so a stripped path cannot collide with a distinct file. Two digits minimum
+per dimension, so `Truck-4x4.webp` keeps its name; WordPress never registers a
+single-digit size.
+
+**One failure was the checker's own bug**, worth recording because the shape
+recurs: `img-lp.rexdalemobilewash.ca` **ends with** `lp.rexdalemobilewash.ca`, so
+a substring test for the old image host flagged every correctly-migrated page.
+The `//` in `//lp.rexdalemobilewash.ca` is what separates the host from a suffix
+of it — the convention `bin/check-images.mjs` already used.
+
+### Advisory — passes the gate, still wants a decision
+
+- **No JSON-LD on `/`, `/privacy-policy/`, `/thank-you/`.** The old `/` and
+  `/thank-you/` each carried a graph, so this is a regression the migration
+  introduced. It is worth being precise about what was lost: RankMath
+  boilerplate whose `Organization.name` was the literal string
+  `lp.rexdalemobilewash.ca`, with no telephone, no address, an `Article` node on
+  a landing page, and a `Person` node exposing `ash@brandingcentres.com`.
+  Restoring it verbatim would restore junk. `/pressure-washing/` already carries
+  a real `LocalBusiness` graph with genuine NAP; lifting that into `Base.astro`
+  would close the gap properly and invents nothing.
+- **No `sitemap.xml`.** The old install had none either, so a pre-existing gap
+  rather than a regression — but worth closing.
 
 ### Still open after the cutover
 

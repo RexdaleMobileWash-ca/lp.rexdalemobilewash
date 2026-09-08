@@ -99,6 +99,34 @@ const UPLOADS_PREFIX = '/wp-content/uploads/';
 const IMG_ORIGIN = 'https://img-lp.rexdalemobilewash.ca';
 
 /**
+ * WordPress generated a resized copy of every upload and put the dimensions in
+ * the filename — `Graffiti-Removal-300x220.webp` beside `Graffiti-Removal.webp`.
+ * Those derivative addresses are all over Google Images and anything that ever
+ * hotlinked a thumbnail.
+ *
+ * Only the originals were copied to B2 (gate 5), so a straight host swap sends
+ * every derivative to a 404 in the bucket — 16 of the 30 old media addresses,
+ * which is what the gate 15 sweep caught. Stripping the suffix points them at
+ * the full-size file, which is the same picture.
+ *
+ * Safe here because it was checked rather than assumed: not one of the 29
+ * objects in the bucket has a `-WxH` key, so a stripped path can never collide
+ * with a distinct real file. Re-check that before reusing this on another site.
+ *
+ * The visitor gets more bytes than the thumbnail address promised. That is the
+ * right trade for an address only crawlers and old hotlinks still request — the
+ * live site references originals directly and never takes this path.
+ *
+ * Two digits minimum per dimension, so `Truck-4x4.webp` keeps its name. That is
+ * not hypothetical for a client whose business is washing trucks, and WordPress
+ * never registers a single-digit image size — the smallest in the wild is around
+ * 32x32. A name ending in a two-digit-or-longer `-NNxNN` would still be stripped;
+ * the bucket contains no such key, so nothing there can be broken by it, and the
+ * gate 15 sweep re-checks every media address if that ever changes.
+ */
+const WP_SIZE_SUFFIX = /-\d{2,5}x\d{2,5}(\.[A-Za-z0-9]+)$/;
+
+/**
  * 301, never 302. A 302 says the old address is coming back, so search engines
  * hold the ranking on the dead URL instead of passing it to the live one. It
  * looks identical to a visitor and quietly costs the client their position.
@@ -123,7 +151,8 @@ export default {
     }
 
     if (url.pathname.startsWith(UPLOADS_PREFIX)) {
-      return permanentRedirect(IMG_ORIGIN + url.pathname + url.search, noindex);
+      const key = url.pathname.replace(WP_SIZE_SUFFIX, '$1');
+      return permanentRedirect(IMG_ORIGIN + key + url.search, noindex);
     }
 
     if (url.pathname === '/api/contact' || url.pathname === '/api/contact/') {

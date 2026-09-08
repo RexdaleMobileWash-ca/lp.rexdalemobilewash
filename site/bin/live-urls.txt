@@ -1,0 +1,81 @@
+# Address list for the live sweep (gate 15, wp-19-check-nothing-is-broken).
+#
+# WHERE THIS CAME FROM, AND WHAT IT IS NOT
+#
+# The canonical list is the gate 0.4 record, sites/lp.rexdalemobilewash.ca.md,
+# which lives in the command repo and not here. This file is a RECONSTRUCTION,
+# built from the old WordPress site's own HTML captured through Cloudflare on
+# 2026-09-08, shortly before the cutover — every internal address the old
+# homepage and /thank-you/ referenced, plus the pages the new build serves.
+#
+# It is honest about its own limits: the old install had no sitemap and its REST
+# API is no longer reachable, so an orphan page that nothing linked to would not
+# appear here. Reconcile against the gate 0.4 record before treating a pass as
+# complete.
+#
+# FORMAT:  <expectation> <TAB> <path>
+#   200      must return 200 directly
+#   301      must return 301 and land on a 200
+#   404      must return 404 — a deliberate decision, not an oversight
+#
+# A 302/307/308 anywhere is a failure even if it lands somewhere working: it
+# tells search engines the old address is coming back, so ranking is held on the
+# dead URL rather than passed on.
+
+# ---- pages the new build serves ----
+200	/
+200	/privacy-policy/
+200	/thank-you/
+200	/pressure-washing/
+
+# ---- aliases and moved addresses (gate 14) ----
+301	/pressurewashing/
+301	/pressurewashing
+301	/author/ashbrandingcentres-com/
+
+# ---- old WordPress media (gate 14 wildcard -> img-lp bucket) ----
+301	/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash-1024x751.webp
+301	/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash-300x220.webp
+301	/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash-768x563.webp
+301	/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash.webp
+301	/wp-content/uploads/2025/03/Car-Wraps-CA-Logo.webp
+301	/wp-content/uploads/2025/03/De-Icing-Photo-300x171.jpg
+301	/wp-content/uploads/2025/03/De-Icing-Photo.jpg
+301	/wp-content/uploads/2025/03/Graffiti-Removal-1024x751.webp
+301	/wp-content/uploads/2025/03/Graffiti-Removal-300x220.webp
+301	/wp-content/uploads/2025/03/Graffiti-Removal-768x563.webp
+301	/wp-content/uploads/2025/03/Graffiti-Removal.webp
+301	/wp-content/uploads/2025/03/ISN-Logo.webp
+301	/wp-content/uploads/2025/03/Loblaws-Logo.webp
+301	/wp-content/uploads/2025/03/Pepsico-Logo.webp
+301	/wp-content/uploads/2025/03/Pizza-Pizza-Logo.webp
+301	/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo-150x150.webp
+301	/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo-300x300.webp
+301	/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo.webp
+301	/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Share-Image.jpg
+301	/wp-content/uploads/2025/03/Sofina-Logo.webp
+301	/wp-content/uploads/2025/03/Storefront-Pressure-Washing-1024x751.webp
+301	/wp-content/uploads/2025/03/Storefront-Pressure-Washing-300x220.webp
+301	/wp-content/uploads/2025/03/Storefront-Pressure-Washing-768x563.webp
+301	/wp-content/uploads/2025/03/Storefront-Pressure-Washing.webp
+301	/wp-content/uploads/2025/03/Toronto-Transportation-Club-Logo.webp
+301	/wp-content/uploads/2025/03/Toronto-Trucking-Association-Logo.webp
+301	/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-180x180.png
+301	/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-192x192.png
+301	/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-270x270.png
+301	/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-32x32.png
+
+# ---- deliberately gone (decided at gate 14) ----
+# Endpoints, not pages. Nothing indexed them, and answering 200-via-redirect
+# would tell a crawler the homepage is the feed.
+404	/feed/
+404	/comments/feed/
+404	/wp-json/
+404	/wp-json/wp/v2/pages/11
+404	/xmlrpc.php
+404	/wp-admin/admin-ajax.php
+# Old theme and plugin assets. They existed only to render the Elementor page;
+# nothing outside the old site linked to them.
+404	/wp-content/plugins/elementor/assets/js/frontend.min.js
+404	/wp-content/themes/hello-elementor/assets/css/theme.css
+404	/wp-includes/js/jquery/jquery.min.js
