@@ -125,10 +125,19 @@ Use the scripts. Once a config defines environments, a bare `wrangler deploy`
 warns that no target was given and then deploys the top level — production —
 anyway; the scripts name the environment explicitly.
 
-**Production has never been deployed.** `lp-rexdalemobilewash` exists in this
-config and nowhere else: no Worker, no Custom Domain, and — the one that bites —
-no `RESEND_API_KEY`. A secret belongs to one Worker, and the staging Worker is
-the one that has it. See *Going live* below.
+**Production is deployed and has its secret, but no hostname.**
+`lp-rexdalemobilewash` is uploaded, `RESEND_API_KEY` is set on it (its own key —
+a secret belongs to one Worker, and staging's is a different key), and
+`workers_dev: false` with no Custom Domain means **nothing can reach it**.
+`wrangler deploy` reports `No targets deployed`, which is correct. Attaching the
+domain is the only remaining step, and it is the one in *Going live* below.
+
+The contact form was proven end to end against it before the cutover, over
+`wrangler dev --remote --env ""`, which runs the real Worker with the real
+secret and exposes it on localhost only: `POST /api/contact` returned
+`{"ok":true,"id":…}` and Resend accepted the message. That check matters because
+a missing secret is invisible until a real visitor submits — the build passes,
+every page looks right, and the form 500s.
 
 ### noindex is config, not a hardcoded header
 
@@ -190,14 +199,14 @@ record must be deleted first, and Cloudflare does not keep what it deleted.
 
 1. Re-read the record above and confirm it still matches. If it has changed,
    the new value is the rollback.
-2. Deploy production and give it its secret — **before** any DNS change, so the
-   Worker is ready to serve the instant the hostname points at it:
+2. ~~Deploy production and give it its secret.~~ **Done 2026-09-08** — deliberately
+   ahead of any DNS change, so the Worker is ready to serve the instant the
+   hostname points at it. Redeploy the current build before cutting over:
    ```bash
    cd site
    npm run build
    CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npm run deploy
-   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY --env ""
-   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret list --env ""
+   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret list --env ""   # RESEND_API_KEY
    ```
 3. Delete the `A` record for `lp.rexdalemobilewash.ca`.
 4. Add `lp.rexdalemobilewash.ca` as a **Custom Domain** on
@@ -345,12 +354,26 @@ never cost the client a real lead.
 
 ```bash
 cd site
-CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY --env staging
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY --env ""
 ```
 
-Resend key name `lp.rexdalemobilewash.ca`, scoped to *sending access on
-brandingcentres.com only*. Rotate by creating a new key in Resend and re-running
-the command above.
+**A secret belongs to one Worker, and there are two.** Each environment holds
+its own key, both scoped to *sending access on brandingcentres.com only*:
+
+| Environment | Resend key name |
+|---|---|
+| `--env staging` | `lp.rexdalemobilewash.ca` |
+| `--env ""` (production) | `lp.rexdalemobilewash.ca production worker` |
+
+Separate keys, not a shared one, so either can be revoked without taking the
+other down — revoking staging's key must never be able to stop the live form.
+
+Rotate by creating a new key in Resend, re-running the command above for the
+environment concerned, and deleting the old key once the form is confirmed
+working. `npx wrangler secret list --env <name>` reads back the name only;
+Cloudflare never discloses a secret's value, so a lost key is replaced, not
+recovered.
 
 **Do not add it as a Build variable.** A build variable is present while the
 build runs and absent when the route executes: the build passes and the form
@@ -526,10 +549,10 @@ copied.
   both its `workers.dev` URL and `staging.lp.rexdalemobilewash.ca`; the image
   store is the B2 bucket `lp-rexdalemobilewash-img` served at
   `img-lp.rexdalemobilewash.ca`. The production Worker `lp-rexdalemobilewash`
-  exists **in config only** — never deployed, no Custom Domain, no
-  `RESEND_API_KEY`. The live WordPress site is still untouched and
-  `lp.rexdalemobilewash.ca` still resolves to it — the domain has not been
-  pointed at the Worker. See *Going live* for the prepared procedure and the
-  rollback record.
+  is deployed with its own `RESEND_API_KEY` and its form is proven, but has
+  **no hostname** — nothing reaches it. The live WordPress site is still
+  untouched and `lp.rexdalemobilewash.ca` still resolves to it — the domain has
+  not been pointed at the Worker. Attaching the Custom Domain is the single
+  remaining step; see *Going live* for the procedure and the rollback record.
 - **No day-2 procedure exists** anywhere in the toolchain for shipping a change
   to a live site. Flag at handover.

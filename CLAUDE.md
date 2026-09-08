@@ -57,20 +57,32 @@ CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY --en
 CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY --env ""
 ```
 
-A secret belongs to **one Worker**, and there are now two. Staging has the key.
-**Production does not** — `lp-rexdalemobilewash` has never been deployed, and
-the first thing it needs after its first deploy is that command with `--env ""`.
-Until then the live form 500s while every page around it looks perfect.
+A secret belongs to **one Worker**, and there are now two. Both have their own
+key, scoped to sending access on brandingcentres.com only — separate keys, so
+revoking staging's can never stop the live form:
 
-`npx wrangler secret list --env <name>` confirms it. Ordinary deploys preserve it.
+| Environment | Resend key name |
+|---|---|
+| `--env staging` | `lp.rexdalemobilewash.ca` |
+| `--env ""` (production) | `lp.rexdalemobilewash.ca production worker` |
+
+`npx wrangler secret list --env <name>` confirms it by name — Cloudflare never
+discloses the value. Ordinary deploys preserve it.
+
+**To test the production form before the domain is attached**, use
+`npx wrangler dev --remote --env ""`: it runs the real Worker with the real
+secret, exposed on localhost only. A missing secret is otherwise invisible
+until a real visitor submits.
 
 ## Staging vs live
 
 - Staging: `https://staging-lp-rexdalemobilewash.ash-47a.workers.dev` **and**
   `https://staging.lp.rexdalemobilewash.ca` (Worker
   `staging-lp-rexdalemobilewash`, `NOINDEX=true`)
-- Production: Worker `lp-rexdalemobilewash` — **exists in config only, never
-  deployed**, no Custom Domain, no secret.
+- Production: Worker `lp-rexdalemobilewash` — deployed, secret set, **no
+  hostname**. `workers_dev: false` and no Custom Domain, so nothing can reach
+  it; `wrangler deploy` reporting `No targets deployed` is correct, not a
+  failure. Attaching the domain is the whole of the remaining cutover.
 - Public: `https://lp.rexdalemobilewash.ca` — still the **old WordPress /
   Elementor site**. The Astro build is not public yet.
 
