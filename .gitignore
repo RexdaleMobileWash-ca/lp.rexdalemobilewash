@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .astro/
+# wrangler's local cache — holds the resolved Cloudflare account id and name.
+# Machine-local build state, not a credential, but it has no business in the repo.
+.wrangler/
 .env
 .env.*
 !.env.example
