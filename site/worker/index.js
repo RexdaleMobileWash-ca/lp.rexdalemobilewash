@@ -60,7 +60,21 @@ function isPreviewHostname(hostname) {
  * real redirect. A paid click deserves a 301, not a page that loads and then
  * bounces the visitor.
  */
-const ALIASES = new Map([['/pressurewashing', '/pressure-washing/']]);
+const ALIASES = new Map([
+  ['/pressurewashing', '/pressure-washing/'],
+
+  /**
+   * The old WordPress author archive (gate 14). It was the only indexable page
+   * among the plumbing addresses the old install answered on, so it passes its
+   * ranking to the homepage rather than dead-ending.
+   *
+   * Its neighbours — /feed/, /comments/feed/, /wp-json/…, /xmlrpc.php,
+   * /wp-admin/admin-ajax.php — are deliberately left to 404. They are
+   * endpoints, not pages: nothing indexed them, and answering 200-via-redirect
+   * would tell a crawler the homepage *is* the feed.
+   */
+  ['/author/ashbrandingcentres-com', '/'],
+]);
 
 /**
  * Old WordPress image addresses (gate 14, AD-10 — nothing is retired).

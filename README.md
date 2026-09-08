@@ -326,20 +326,26 @@ live in a **different** bucket (`img.rexdalemobilewash.ca`) — every image on t
 main site would be redirected to the wrong place. Delete the `UPLOADS_PREFIX`
 branch in `worker/index.js` if the rule is created, so there is one owner.
 
-### Not yet decided — WordPress plumbing addresses
+### WordPress plumbing addresses
 
-The old site also answered on paths that cannot exist on a static site. Their
-destinations are a gate 0.1 decision (`retired_url_targets`) and that record is
-in the command repo, so **they are deliberately left 404 pending a decision**:
+The old site also answered on paths that cannot exist on a static site. Only one
+of them was a real indexable page, and only that one redirects:
 
 ```
-/feed/  /comments/feed/                     WordPress feeds (no blog ever existed)
-/wp-json/  /wp-json/wp/v2/pages/11  /wp-json/oembed/1.0/embed
-/xmlrpc.php   /wp-admin/admin-ajax.php
-/author/ashbrandingcentres-com/             author archive — was indexable
+/author/ashbrandingcentres-com/   ->  /          301   author archive
+/feed/  /comments/feed/               404              feeds — no blog ever existed
+/wp-json/*  /xmlrpc.php               404              endpoints, not pages
+/wp-admin/admin-ajax.php              404
 ```
 
-Of these, only `/author/ashbrandingcentres-com/` was a real indexable page.
+The 404s are deliberate. Answering 200-via-redirect on a feed tells a crawler
+the homepage *is* the feed; nothing ever indexed those addresses, and an
+endpoint that no longer exists should say so. The author archive is the
+exception because it was indexable, so it passes its ranking on rather than
+dead-ending.
+
+The match is exact, not a `/author/*` prefix — one author existed, and a
+wildcard would swallow paths nobody has asked for.
 
 ### Still open after the cutover
 
