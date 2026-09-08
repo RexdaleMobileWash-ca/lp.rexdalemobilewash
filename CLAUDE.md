@@ -130,37 +130,35 @@ The hostname is `img-lp`, not `img.lp.…`, because `img.rexdalemobilewash.ca` i
 already the main site's bucket and the free Universal SSL certificate does not
 cover a second label below the apex.
 
-## Analytics — Ads tagging lives in GTM, not in the page
+## Analytics — there is no Google Ads tagging on this site at all
 
-Google Ads is fired by container `GTM-NMTLRJ63` only. There is no hardcoded
-gtag.js on any page, and `Analytics.astro` is Microsoft Clarity (`qsc0wq5qpr`)
-and nothing else. There is no GA4 (no `G-` measurement ID anywhere).
+`lp.rexdalemobilewash.ca` fires **no Google Ads tag**: no hardcoded gtag.js, and
+no GTM container. `Analytics.astro` is Microsoft Clarity (`qsc0wq5qpr`) and
+nothing else. There is no GA4 (no `G-` measurement ID anywhere).
 
-The old WordPress theme fired Ads from hardcoded snippets, and the Astro build
-reproduced them verbatim through the cutover so the Ads account would not see a
-gap. That snippet has now been removed in favour of the container, so **the
-container is the only thing counting conversions**. It must cover:
+How it got here, in two steps:
 
-- the Google Ads tag for `AW-16946176869`, all pages
-- call conversion `AW-16946176869/jqC8COOXo64aEOXGyJA_`, number swap to
-  (416) 244-6497
-- form conversion `AW-16946176869/cnvWCPKRo64aEOXGyJA_` — on the `/thank-you/`
-  page view for the main site's forms, and on the `generate_lead` dataLayer
-  push for `/pressure-washing/`
+1. The hardcoded Ads snippets ported from the old WordPress theme were removed
+   in favour of the container, to stop conversions double-counting.
+2. The container itself was then removed from this site. `GTM-NMTLRJ63` belongs
+   to the **main site, rexdalemobilewash.ca**, and this landing page was loading
+   the same container — which is how the Google tag (`GT-K4CTKXS5`, destination
+   `AW-16946176869`) kept showing up in Tag Assistant here. It was removed from
+   this build rather than paused in GTM, because pausing would have taken the
+   tag off the main site too.
 
-`/thank-you/` is reachable only after `worker/contact.js` accepts a submission,
-so a page view there is a real lead — a URL trigger on that path is equivalent
-to the on-load snippet it replaced, and abandoned or failed submissions still
-never count.
+**The main site is untouched.** It keeps `GTM-NMTLRJ63` and everything in it.
 
-**Do not re-add a hardcoded Ads tag while the container fires one.** That is the
-double-count: every conversion lands twice and the Ads account optimises against
-inflated numbers. Pick one place — today it is the container.
+**Consequence, accepted deliberately:** this page carries paid Google Ads
+traffic and nothing on it reports conversions — not the base tag, not the call
+conversion `jqC8COOXo64aEOXGyJA_`, not the form conversion
+`cnvWCPKRo64aEOXGyJA_`. The Ads account sees zero conversions from this landing
+page. If reporting is ever wanted back, give the page its **own** container or
+its own snippet — one place only, never both, or every conversion counts twice.
 
-`Analytics.astro` is pulled in by `Base.astro` (covering `/`,
-`/privacy-policy/`, `/thank-you/`) and separately by `pressure-washing.astro`,
-which has its own head and does not use `Base`. Both also load `GTM-NMTLRJ63`
-independently.
+Still live and unaffected: Microsoft Clarity, and the `generate_lead` dataLayer
+push on `/pressure-washing/` (which now pushes into a dataLayer no container
+reads — harmless, and ready if a container is ever added).
 
 ## Build note
 

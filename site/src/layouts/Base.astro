@@ -41,20 +41,20 @@ const {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Google Tag Manager -->
-    <script is:inline>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != 'dataLayer' ? '&l=' + l : '';
-        j.async = true;
-        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, 'script', 'dataLayer', 'GTM-NMTLRJ63');
-    </script>
-    <!-- End Google Tag Manager -->
+    {/* NO GOOGLE TAG MANAGER ON THIS SITE.
+         GTM-NMTLRJ63 belongs to the main site, rexdalemobilewash.ca, and this
+         landing page used to load the same container. That container fires the
+         Google tag (GT-K4CTKXS5) with the Google Ads destination
+         AW-16946176869, so the tag was reaching lp.rexdalemobilewash.ca by way
+         of the main site's container rather than from anything on this page.
+
+         It is removed here rather than paused in GTM: pausing would have taken
+         the tag off rexdalemobilewash.ca as well, which is not the intent. The
+         main site keeps its container and its tag, untouched.
+
+         Consequence, on purpose: nothing on this landing page reports Google
+         Ads conversions any more — no base tag, no call conversion, no form
+         conversion. Clarity below is unaffected. */}
 
     <Analytics />
 
@@ -90,16 +90,6 @@ const {
   </head>
 
   <body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript
-      ><iframe
-        src="https://www.googletagmanager.com/ns.html?id=GTM-NMTLRJ63"
-        height="0"
-        width="0"
-        style="display:none;visibility:hidden"></iframe></noscript
-    >
-    <!-- End Google Tag Manager (noscript) -->
-
     <slot />
 
     <style is:global>

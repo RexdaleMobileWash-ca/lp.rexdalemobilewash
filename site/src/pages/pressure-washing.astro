@@ -155,31 +155,30 @@ const FAQ_LD = {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Google Tag Manager — same container as the rest of this build (Base.astro) -->
-    <script is:inline>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != 'dataLayer' ? '&l=' + l : '';
-        j.async = true;
-        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, 'script', 'dataLayer', 'GTM-NMTLRJ63');
-    </script>
-    <!-- End Google Tag Manager -->
+    {/* NO GOOGLE TAG MANAGER ON THIS SITE.
+         GTM-NMTLRJ63 belongs to the main site, rexdalemobilewash.ca, and this
+         landing page used to load the same container. That container fires the
+         Google tag (GT-K4CTKXS5) with the Google Ads destination
+         AW-16946176869, so the tag was reaching lp.rexdalemobilewash.ca by way
+         of the main site's container rather than from anything on this page.
 
-    <!--
-      Clarity, same as the rest of the build. The Ads tag is no longer here or
-      anywhere else on the page — it belongs to GTM-NMTLRJ63 above, so that a
-      conversion is counted in one place rather than two. See Analytics.astro.
+         It is removed here rather than paused in GTM: pausing would have taken
+         the tag off rexdalemobilewash.ca as well, which is not the intent. The
+         main site keeps its container and its tag, untouched.
 
-      This page's lead event is `generate_lead`, pushed to the dataLayer by the
-      script at the end of the body only after /api/contact confirms a send —
-      that push is unaffected, and is the trigger the container should hang this
-      page's conversion on.
-    -->
+         Consequence, on purpose: nothing on this landing page reports Google
+         Ads conversions any more — no base tag, no call conversion, no form
+         conversion. Clarity below is unaffected. */}
+
+    {/*
+      Clarity, same as the rest of the build. No Ads tag and no container on
+      this page — see the note above.
+
+      The `generate_lead` dataLayer push at the end of the body is left in
+      place: it costs nothing, breaks nothing with no container reading the
+      dataLayer, and is the trigger to hang a conversion on if this page ever
+      gets its own container.
+    */}
     <Analytics />
 
     <title>{TITLE}</title>
@@ -581,16 +580,6 @@ const FAQ_LD = {
   </head>
 
   <body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript
-      ><iframe
-        src="https://www.googletagmanager.com/ns.html?id=GTM-NMTLRJ63"
-        height="0"
-        width="0"
-        style="display:none;visibility:hidden"></iframe></noscript
-    >
-    <!-- End Google Tag Manager (noscript) -->
-
     <div style="width:100%;overflow-x:hidden">
 
     <header style="position:sticky;top:0;z-index:60;background:#FFFFFF;border-bottom:3px solid #0A4C8A;box-shadow:0 2px 10px rgba(16,24,32,.10)">

@@ -11,23 +11,16 @@
  * verbatim from the live WordPress page so the cutover would be invisible in
  * the Ads account.
  *
- * The build also loads GTM container GTM-NMTLRJ63 (see Base.astro, and
- * pressure-washing.astro which carries its own copy). Ads tagging has to live
- * in exactly one of those two places: with the snippet here AND a container
- * tag firing the same conversion, every conversion counts twice and the Ads
- * account optimises against inflated numbers. It is now the container's job,
- * so the snippet is gone.
+ * The landing page no longer loads GTM either. Container GTM-NMTLRJ63 belongs
+ * to the main site, rexdalemobilewash.ca, and this build used to load the same
+ * one — which is how the Google tag kept appearing here after the snippet went.
+ * It was removed from this site rather than paused in GTM, so the main site
+ * keeps its container and its tag. See the note in Base.astro.
  *
- * What GTM-NMTLRJ63 must therefore cover, since nothing on the page does it
- * any more:
- *   - the Google Ads tag for AW-16946176869 on every page
- *   - the call conversion, including the (416) 244-6497 number swap
- *   - the form conversion, on the /thank-you/ page view
- *
- * /thank-you/ is reachable only after worker/contact.js has accepted a
- * submission, so a page view there is a real lead — a URL trigger on that path
- * reproduces the old on-load semantics exactly, and abandoned or failed
- * submissions still never count.
+ * Net effect: nothing on lp.rexdalemobilewash.ca reports Google Ads
+ * conversions. Not the base tag, not the call conversion, not the form
+ * conversion. If Ads reporting is ever wanted back on this page it needs its
+ * own container or its own snippet — deliberately, and in one place only.
  *
  * Clarity stays hardcoded: it is not an Ads tag, has no double-counting
  * hazard (a second copy of the same project id is de-duplicated by the tag
