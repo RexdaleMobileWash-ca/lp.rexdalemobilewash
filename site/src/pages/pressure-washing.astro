@@ -173,7 +173,7 @@ const FAQ_LD = {
     <!--
       Same Ads + Clarity tags as the rest of the build. No `conversion` prop:
       this page's own lead event is `generate_lead`, pushed to the dataLayer by
-      the script at the end of the body only after Web3Forms confirms a success.
+      the script at the end of the body only after /api/contact confirms a send.
     -->
     <Analytics />
 
@@ -626,8 +626,7 @@ const FAQ_LD = {
               <h2 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h2>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
               <form data-submit="submitHero" novalidate style="display:grid;gap:14px">
-                <input type="hidden" name="access_key" value="">
-                <input type="hidden" name="subject" value="Quote request — Rexdale LP (hero form)">
+                <input type="hidden" name="source" value="Commercial LP — hero">
                 <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Full Name *</span>
@@ -635,7 +634,7 @@ const FAQ_LD = {
                 </label>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Company *</span>
-                  <input type="text" name="company" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                  <input type="text" name="organization" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                 </label>
                 <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))">
                   <label style="display:block;min-width:0">
@@ -1122,8 +1121,7 @@ const FAQ_LD = {
               <h3 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h3>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
               <form data-submit="submitFinal" novalidate style="display:grid;gap:14px">
-                <input type="hidden" name="access_key" value="">
-                <input type="hidden" name="subject" value="Quote request — Rexdale LP (final CTA form)">
+                <input type="hidden" name="source" value="Commercial LP — final CTA">
                 <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Full Name *</span>
@@ -1131,7 +1129,7 @@ const FAQ_LD = {
                 </label>
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Company *</span>
-                  <input type="text" name="company" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
+                  <input type="text" name="organization" required autocomplete="organization" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
                 </label>
                 <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))">
                   <label style="display:block;min-width:0">
@@ -1206,19 +1204,24 @@ const FAQ_LD = {
     <script is:inline>
       (function () {
         /* ------------------------------------------------------------------
-           Web3Forms access key. Empty means the forms are NOT connected: a
-           submission is refused in the browser and the visitor is told to
-           call, rather than posting a real enquiry into a void. Paste the key
-           here to switch both forms on — nothing else needs to change.
+           Both forms post to POST /api/contact — the same Worker route and the
+           same Resend key as the Elementor-replica forms, so there is one
+           place a lead can go missing rather than two.
+
+           The design shipped posting to Web3Forms with an empty access key,
+           which meant the forms were dead. That is gone: no third-party form
+           service, no second vendor to hold a key for, and the endpoint is
+           same-origin so it is covered by the Origin check and the per-IP rate
+           limit already in the Worker.
+
+           The field names are load-bearing. The visible, required "Company *"
+           input posts as `organization`, NOT `company` — `company` is the
+           honeypot the Elementor forms use, and a real value in it makes the
+           Worker treat the submission as a bot: 202, no email, no error. See
+           HONEYPOTS in worker/contact.js. This page's own honeypot is the
+           hidden `botcheck` checkbox, which the Worker also knows about.
            ------------------------------------------------------------------ */
-        var ACCESS_KEY = '';
-
         var PHONE = "1 (416) 244-6497";
-
-        Array.prototype.forEach.call(
-          document.querySelectorAll('input[name="access_key"]'),
-          function (input) { input.value = ACCESS_KEY; }
-        );
 
         /* ---- FAQ accordion ---- */
         Array.prototype.forEach.call(
@@ -1317,30 +1320,31 @@ const FAQ_LD = {
               if (!form.reportValidity()) return;
               if (alertBox) alertBox.style.display = 'none';
 
-              if (!ACCESS_KEY) {
-                fail('This form is not connected yet.');
-                return;
-              }
-
               busy(true);
               var data = {};
               new FormData(form).forEach(function (value, key) { data[key] = value; });
 
-              fetch('https://api.web3forms.com/submit', {
+              fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                 body: JSON.stringify(data)
               })
                 .then(function (r) {
-                  return r.json().then(function (j) {
-                    return { ok: r.ok && j.success !== false, body: j };
-                  });
+                  return r.json().then(
+                    function (j) { return { ok: r.ok && j.ok !== false, body: j }; },
+                    /* A body that is not JSON still has a status worth trusting. */
+                    function () { return { ok: r.ok, body: {} }; }
+                  );
                 })
                 .then(function (res) {
                   if (!res.ok) {
-                    throw new Error((res.body && res.body.message) || 'Submission was rejected.');
+                    /* The Worker returns {errors:{field:message}} on a validation
+                       failure; show the first one rather than a generic line. */
+                    var errs = res.body && res.body.errors;
+                    var first = errs && Object.keys(errs).length ? errs[Object.keys(errs)[0]] : null;
+                    throw new Error(first || (res.body && res.body.error) || 'Submission was rejected.');
                   }
-                  /* generate_lead fires only after Web3Forms confirms success —
+                  /* generate_lead fires only after the Worker confirms the send —
                      firing it on click would inflate conversions with abandoned
                      and failed submissions. */
                   window.dataLayer = window.dataLayer || [];

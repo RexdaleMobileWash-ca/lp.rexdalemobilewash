@@ -110,20 +110,40 @@ pixels differing — all of it WebP re-encode noise, none by more than a hair.
 To regenerate after a new design export, redo the port; there is no build step
 that reads the export at build time.
 
-### Before this page goes live
+### The quote forms
 
-**The quote forms are not connected.** The design posts to Web3Forms; no access
-key was supplied. `ACCESS_KEY` at the top of the page's inline script is empty,
-and while it is empty a submission is refused in the browser with a visible
-"not connected yet, please call" message rather than posting a real enquiry into
-a void — the same posture as `EstimateForm.astro`. Paste the key there and both
-forms switch on; nothing else needs to change. Until then the page's only
-working conversion path is the phone number.
+**Both post to `POST /api/contact`** — the same Worker route and the same Resend
+key as the Elementor-replica forms, so there is one place a lead can go missing
+rather than two. Web3Forms is gone: no third-party form service, no second
+vendor holding a key, and because the endpoint is same-origin it inherits the
+Origin check, the per-IP rate limit and the honeypot already in the Worker.
+
+The design shipped posting to Web3Forms with an empty access key, which meant
+the forms were dead and the phone number was the page's only conversion path.
+
+**The field names are load-bearing.** The visible, required "Company *" input
+posts as `organization`, **not** `company`:
+
+| Field | Posts as | Why |
+|---|---|---|
+| Company * | `organization` | `company` is the honeypot the Elementor forms use |
+| (hidden) | `botcheck` | this page's honeypot; the Worker knows both names |
+| Property Type * | `property_type` | shown as its own row in the notification |
+| (hidden) | `source` | `Commercial LP — hero` / `— final CTA` |
+
+Wiring the real company name to `company` would have made every genuine
+commercial lead look like a bot to the Worker — 202, no email, no error
+anywhere, and nobody the wiser until someone asked why the quote requests had
+stopped. See `HONEYPOTS` in `worker/contact.js`.
+
+`source` tags the subject line — `New estimate request — Dana Okafor
+[Commercial LP — hero]` — so commercial quote requests are separable in the
+inbox from the main landing page's enquiries without opening either.
 
 The page uses the same GTM container as the rest of the build
-(`GTM-NMTLRJ63`), and pushes `generate_lead` to the dataLayer only after
-Web3Forms confirms a success — not on click, which would count abandoned and
-failed submissions as conversions.
+(`GTM-NMTLRJ63`), and pushes `generate_lead` to the dataLayer only after the
+Worker confirms the send — not on click, which would count abandoned and failed
+submissions as conversions.
 
 ## Two environments
 
@@ -366,8 +386,6 @@ Analytics parity is done (see *Analytics* below). These are not, and are now
 open on a **live** site:
 
 - **Privacy policy is placeholder text.** See *Open items*.
-- **`/pressure-washing/` quote forms are dead** — no Web3Forms key, so phone is
-  that page's only conversion path.
 - **Gates 14 and 15 have not run** — `wp-18-keep-old-links-working` (edge
   redirects) and `wp-19-check-nothing-is-broken` (the live sweep). The old page
   linked nowhere but `/`, `/feed/`, `/comments/feed/` and `wp-json`, so the
@@ -516,9 +534,17 @@ build runs and absent when the route executes: the build passes and the form
 
 ### Abuse protection, and what is actually protecting it
 
-- **Honeypot** — a hidden `company` field. Anything that arrives filled in is a
-  bot, and gets a `202` rather than an error, because telling a bot it failed
-  only makes it retry. This stops more real-world form spam than the rate limit.
+- **Honeypot** — two hidden fields, `company` and `botcheck`. Anything that
+  arrives with either one filled in is a bot, and gets a `202` rather than an
+  error, because telling a bot it failed only makes it retry. This stops more
+  real-world form spam than the rate limit.
+
+  Two names because the two form families were built at different times:
+  `EstimateForm.astro` traps on `company`, the commercial LP traps on
+  `botcheck`. **This is why the commercial LP's real, required "Company *" input
+  posts as `organization`** — see that page's *quote forms* section. Anything
+  added later must check `HONEYPOTS` in `worker/contact.js` before naming a
+  visible field.
 - **Rate limit** — 8/min per IP via the Workers rate limiting binding. Know what
   this is: it is counted **per data centre** and is documented as "permissive,
   eventually consistent, and intentionally designed to not be used as an
@@ -564,8 +590,10 @@ Elementor `e-gallery` — CSS background-images injected by JavaScript, invisibl
 to crawlers and screen readers. Now nine `<img>` elements with alt text.
 
 *(The third departure — forms that did not submit — is resolved; see **The
-contact form** above. Field names are unchanged: name, email, phone, city,
-message.)*
+contact form** above. These forms' field names are unchanged: name, email,
+phone, city, message. The endpoint additionally accepts `organization`,
+`property_type` and `source`, all optional, all sent only by the commercial LP
+forms.)*
 
 ## Images
 
