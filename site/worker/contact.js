@@ -1,5 +1,6 @@
 /**
- * POST /api/contact — the estimate form endpoint.
+ * POST /api/contact — the estimate form endpoint (components/EstimateForm.astro,
+ * rendered twice on the home page: the hero panel and the closing CTA).
  *
  * Runs on the Worker at request time. It is deliberately NOT an Astro page:
  * the site builds with output 'static', so anything under src/pages is
@@ -7,34 +8,45 @@
  * keeps the noindex wrapper in worker/index.js intact, which the
  * @astrojs/cloudflare adapter would have replaced.
  *
- * ADDRESSING — this is the part worth not "improving" casually:
+ * Addressing and the Resend call live in mail.js; the bot-protection layers
+ * live in guard.js. Read guard.js before changing the order of anything below:
+ * the sequence is chosen so that a bot spends its budget on the cheap checks
+ * and never reaches an outbound call, and so that nothing sends before all four
+ * layers have passed.
  *
- *   From ....... forms@brandingcentres.com   the SHARED sending domain
- *   Reply-To ... dispatch@rexdalemobilewash.ca   the client's own address
- *
- * rexdalemobilewash.ca is NEVER used as a sending domain. That is what makes
- * it impossible for this endpoint to touch the client's existing Microsoft 365
- * mail reputation — no SPF, DKIM or DMARC record of theirs is involved.
- *
- * The visitor's address never goes in From. To a receiving mail server that is
- * forgery, and it is the fastest way to land every notification in spam. The
- * visitor's address goes in the body, as a mailto: link.
- *
- * The API key is env.RESEND_API_KEY, a Worker SECRET. A key added under Build
+ * The API key is env.RESEND_API_KEY and the Turnstile secret is
+ * env.TURNSTILE_SECRET_KEY. Both are Worker SECRETS. A key added under Build
  * settings instead is present while the build runs and absent when this code
- * executes: the build passes and the form 500s in production. Set it with
- * `wrangler secret put RESEND_API_KEY`, never in wrangler.jsonc vars.
+ * executes: the build passes and the form 500s in production. Set them with
+ * `wrangler secret put`, never in wrangler.jsonc vars.
  */
 
-const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+import {
+  BURST_LIMIT_ERROR,
+  DWELL_ERROR,
+  EMAIL_MX_ERROR,
+  EMAIL_RE,
+  RATE_LIMIT_ERROR,
+  checkBurstLimit,
+  checkDwell,
+  checkRateLimit,
+  digitsOf,
+  domainAcceptsMail,
+  honeypotTripped,
+  isPlaceholder,
+  logAccepted,
+  logRejection,
+  originOf,
+  recordSubmission,
+  verifyTurnstile,
+} from './guard.js';
+import { esc, idempotencyKey, originHtml, originText, sendEmail } from './mail.js';
+
+const FORM_ID = 'estimate';
 
 // Caps are generous for a real enquiry and small enough that a payload can not
 // be used to blow out the Resend request.
 const LIMITS = { name: 120, email: 200, phone: 60, city: 120, message: 4000 };
-
-// Deliberately loose. Address validity is proven by mail being answered, not
-// by a regex, and an over-strict pattern silently drops real enquiries.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const json = (status, body) =>
   new Response(JSON.stringify(body), {
@@ -44,13 +56,6 @@ const json = (status, body) =>
       'Cache-Control': 'no-store',
     },
   });
-
-const esc = (s) =>
-  String(s).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  );
 
 /** Read either a JSON body or a urlencoded form post into a plain object. */
 async function readBody(request) {
@@ -87,16 +92,43 @@ function clean(body) {
   return out;
 }
 
-function validate(v) {
+/**
+ * Layer 3 for this form. Every message here is written to be read by a person
+ * who typed something slightly wrong, because most of the people who see one
+ * will be exactly that.
+ */
+async function validate(v) {
   const errors = {};
+
   if (!v.name) errors.name = 'Please enter your name.';
+  else if (v.name.length < 2) errors.name = 'Please enter your full name.';
+  else if (isPlaceholder(v.name)) errors.name = 'Please enter your real name.';
+
   if (!v.email) errors.email = 'Please enter your email address.';
   else if (!EMAIL_RE.test(v.email)) errors.email = 'That email address looks wrong.';
+
   if (!v.phone) errors.phone = 'Please enter a phone number.';
-  return errors;
+  else if (digitsOf(v.phone).length < 7)
+    errors.phone = 'That phone number is too short — please include the area code.';
+
+  if (v.city && (v.city.length < 2 || isPlaceholder(v.city)))
+    errors.city = 'Please enter a real city, or leave it blank.';
+
+  if (v.message && isPlaceholder(v.message))
+    errors.message = 'Please tell us a little about the job, or leave it blank.';
+
+  // The MX lookup is a network call, so it runs only once the address is at
+  // least shaped like one and nothing else has already failed.
+  if (!Object.keys(errors).length) {
+    const domain = v.email.split('@').pop();
+    const mx = await domainAcceptsMail(domain);
+    if (!mx.ok) return { errors: { email: EMAIL_MX_ERROR }, reason: mx.reason };
+  }
+
+  return { errors };
 }
 
-function notificationEmail(env, v, meta) {
+function notificationEmail(env, v, origin) {
   const row = (label, value) =>
     value
       ? `<tr>
@@ -129,10 +161,11 @@ function notificationEmail(env, v, meta) {
           : ''
       }
       <p style="margin:20px 0 0;padding-top:14px;border-top:1px solid #e6edf2;color:#8a97a3;font:12px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">
-        Sent from the ${esc(env.SITE_NAME || 'Rexdale Mobile Wash')} website form${meta.city ? ` · ${esc(meta.city)}` : ''}${meta.country ? `, ${esc(meta.country)}` : ''}<br>
+        Sent from the ${esc(env.SITE_NAME || 'Rexdale Mobile Wash')} website form.<br>
         Reply to this message and it goes to ${esc(env.CONTACT_REPLY_TO)}. To answer the
         enquirer directly, use ${esc(v.email)}.
       </p>
+      ${originHtml('Estimate form (home page)', origin)}
     </div>
   </div>
 </div>`;
@@ -146,6 +179,7 @@ function notificationEmail(env, v, meta) {
     v.city ? `City:  ${v.city}` : null,
     '',
     v.message ? `Message:\n${v.message}` : null,
+    originText('Estimate form (home page)', origin),
   ]
     .filter((line) => line !== null)
     .join('\n');
@@ -201,24 +235,6 @@ ${v.message || `${v.phone}${v.city ? ` · ${v.city}` : ''}`}
   };
 }
 
-async function sendEmail(env, payload) {
-  const res = await fetch(RESEND_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const err = new Error(body?.message || `Resend responded ${res.status}`);
-    err.status = res.status;
-    throw err;
-  }
-  return body;
-}
-
 export async function handleContact(request, env, ctx) {
   if (request.method !== 'POST') {
     return json(405, { ok: false, error: 'Use POST.' });
@@ -232,50 +248,57 @@ export async function handleContact(request, env, ctx) {
   }
 
   const wantsJson = (request.headers.get('Accept') || '').includes('application/json');
+  const ok = () =>
+    wantsJson
+      ? json(202, { ok: true })
+      : Response.redirect(new URL('/thank-you', request.url).toString(), 303);
 
   const body = await readBody(request);
   if (!body) {
     return json(415, { ok: false, error: 'Send JSON or a urlencoded form body.' });
   }
 
-  // Honeypot. Real people never see this field, so anything in it is a bot.
-  // Answer 202 rather than an error: a bot told it failed simply retries.
-  if (String(body.company ?? '').trim()) {
-    return wantsJson
-      ? json(202, { ok: true })
-      : Response.redirect(new URL('/thank-you', request.url).toString(), 303);
+  const from = originOf(request, body);
+
+  // --- Layer 2a: honeypot. Answered as a success on purpose. ---------------
+  if (honeypotTripped(body)) {
+    logRejection(FORM_ID, 'honeypot', from);
+    return ok();
   }
 
-  // Per-IP rate limit. Without it a public form is a spam relay that sends on
-  // our verified domain — the reputation being spent would be ours.
-  //
-  // This sits BEFORE validation on purpose, so a flood of deliberately malformed
-  // payloads is capped too, not just the ones that would send. The limit is set
-  // high enough (8/min) that a real person fumbling the form never reaches it.
-  //
-  // Know what this is and is not. Cloudflare's rate limiting binding is counted
-  // PER DATA CENTRE and is documented as "permissive, eventually consistent,
-  // and intentionally designed to not be used as an accurate accounting
-  // system". A caller spread across colos gets a multiple of this limit. It is
-  // a brake on the naive case, not a guarantee. The honeypot above stops more
-  // real-world form spam than this does. The enforcing layer — a WAF rate
-  // limiting rule, and Turnstile — needs a Cloudflare ZONE to attach to, so it
-  // cannot exist while this is served from workers.dev; add it when the Worker
-  // gets a custom domain.
-  if (env.CONTACT_RATE_LIMIT) {
-    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-    const { success } = await env.CONTACT_RATE_LIMIT.limit({ key: ip });
-    if (!success) {
-      return json(429, {
-        ok: false,
-        error: 'Too many submissions from this connection. Please try again shortly.',
-      });
-    }
+  // --- Layer 2b: dwell time -----------------------------------------------
+  const dwell = checkDwell(body);
+  if (!dwell.ok) {
+    logRejection(FORM_ID, dwell.reason, from, dwell.detail);
+    return json(400, { ok: false, error: DWELL_ERROR });
   }
 
+  // --- Burst brake: caps garbage that will never send, before any outbound
+  //     call is made on its behalf. ----------------------------------------
+  const burst = await checkBurstLimit(env, from);
+  if (!burst.ok) {
+    logRejection(FORM_ID, burst.reason, from);
+    return json(429, { ok: false, error: BURST_LIMIT_ERROR });
+  }
+
+  // --- Layer 4: hourly per-IP limit, read before anything is sent ----------
+  const rate = await checkRateLimit(env, FORM_ID, from);
+  if (!rate.ok) {
+    logRejection(FORM_ID, rate.reason, from, `${rate.count} in the last hour`);
+    return json(429, { ok: false, error: RATE_LIMIT_ERROR });
+  }
+
+  // --- Layer 1: Turnstile. Fails closed, including on a missing secret. ----
+  const turnstile = await verifyTurnstile(request, body, env, from, FORM_ID);
+  if (!turnstile.ok) {
+    return json(turnstile.status, { ok: false, error: turnstile.error });
+  }
+
+  // --- Layer 3: sanity validation -----------------------------------------
   const values = clean(body);
-  const errors = validate(values);
+  const { errors, reason } = await validate(values);
   if (Object.keys(errors).length) {
+    logRejection(FORM_ID, reason || 'validation', from, Object.keys(errors).join(','));
     return json(400, { ok: false, error: 'Please check the form.', errors });
   }
 
@@ -285,11 +308,13 @@ export async function handleContact(request, env, ctx) {
     return json(500, { ok: false, error: 'The form is not configured. Please call us.' });
   }
 
-  const meta = { city: request.cf?.city, country: request.cf?.country };
-
   let sent;
   try {
-    sent = await sendEmail(env, notificationEmail(env, values, meta));
+    sent = await sendEmail(
+      env,
+      notificationEmail(env, values, from),
+      await idempotencyKey(FORM_ID, 'notify', from, `${values.email}|${values.message}`),
+    );
   } catch (err) {
     console.error('contact: notification failed —', err.message);
     return json(502, {
@@ -298,17 +323,28 @@ export async function handleContact(request, env, ctx) {
     });
   }
 
+  // Counted only now: the limit is on submissions that actually send, so a
+  // visitor who fumbles validation is not locked out of the form.
+  await recordSubmission(env, FORM_ID, from, rate.recent);
+  logAccepted(FORM_ID, from, sent.id);
+
   // Best effort, and after the notification has already succeeded: a bounced
   // confirmation must never cost the client a real lead.
   if (env.CONTACT_CONFIRM === 'true') {
     ctx.waitUntil(
-      sendEmail(env, confirmationEmail(env, values)).catch((err) =>
-        console.error('contact: confirmation failed —', err.message),
-      ),
+      (async () => {
+        try {
+          await sendEmail(
+            env,
+            confirmationEmail(env, values),
+            await idempotencyKey(FORM_ID, 'confirm', from, values.email),
+          );
+        } catch (err) {
+          console.error('contact: confirmation failed —', err.message);
+        }
+      })(),
     );
   }
 
-  return wantsJson
-    ? json(202, { ok: true, id: sent.id })
-    : Response.redirect(new URL('/thank-you', request.url).toString(), 303);
+  return wantsJson ? json(202, { ok: true, id: sent.id }) : ok();
 }

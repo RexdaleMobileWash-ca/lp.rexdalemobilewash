@@ -22,6 +22,26 @@
  * design system (Barlow/Oswald, blue/red) from the rest of this site
  * (Montserrat/Source Sans), and Base's global styles would fight it.
  */
+/*
+ * Turnstile sitekey for the two quote forms below. Public — it is served in the
+ * HTML either way — but still an environment variable rather than a literal so
+ * it never lands in git and so staging and production can carry different
+ * widgets. See site/.env.example.
+ *
+ * The forms post to /api/quote (worker/quote.js), which verifies the token
+ * server-side and fails closed. They used to post straight to Web3Forms from
+ * the browser with an access key that was never filled in, so nothing could be
+ * checked and nothing was ever delivered.
+ */
+const TURNSTILE_SITEKEY = import.meta.env.PUBLIC_TURNSTILE_SITEKEY ?? '';
+if (!TURNSTILE_SITEKEY) {
+  console.warn(
+    '[pressure-washing] PUBLIC_TURNSTILE_SITEKEY is not set, so no Turnstile ' +
+      'widget is being rendered. /api/quote fails closed, so both quote forms ' +
+      'will refuse every submission until the key is set and the site is rebuilt.',
+  );
+}
+
 const CANONICAL = 'https://lp.rexdalemobilewash.ca/pressure-washing/';
 const TITLE = 'Commercial Pressure Washing Toronto | Rexdale Mobile Wash';
 const DESC =
@@ -549,6 +569,23 @@ const FAQ_LD = {
         .pw-hdr-cta { display: none; }
       }
 
+      /* Honeypot wrapper on both quote forms. Moved off-screen rather than
+         display:none — a bot that skips display:none fields still fills this
+         one, which is the point. */
+      .pw-hp {
+        position: absolute;
+        width: 1px; height: 1px;
+        margin: -1px; padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* Turnstile, appearance "interaction-only": nothing renders and nothing
+         takes space for a visitor Cloudflare clears silently. */
+      .pw-ts:not(:empty) { margin: 0; }
+
       /* Was {{ barDisplay }}: mobile only, once the hero has scrolled past. */
       .pw-mobile-bar { display: none; }
       @media (max-width: 779px) {
@@ -610,10 +647,17 @@ const FAQ_LD = {
             <div>
               <h2 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h2>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
-              <form data-submit="submitHero" novalidate style="display:grid;gap:14px">
-                <input type="hidden" name="access_key" value="">
-                <input type="hidden" name="subject" value="Quote request — Rexdale LP (hero form)">
-                <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
+              <form data-submit="submitHero" data-placement="hero" method="POST" action="/api/quote" novalidate style="display:grid;gap:14px">
+                {/* Honeypot — see .pw-hp. A hit is answered as a success: telling
+                    a bot it failed only makes it retry. */}
+                <div class="pw-hp" aria-hidden="true">
+                  <label for="hero-website">Website</label>
+                  <input id="hero-website" type="text" name="website" tabindex="-1" autocomplete="off">
+                </div>
+                {/* Filled in by the script at the end of the body. */}
+                <input type="hidden" name="placement" value="hero">
+                <input type="hidden" name="form_elapsed_ms" value="">
+                <input type="hidden" name="page_url" value="">
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Full Name *</span>
                   <input type="text" name="name" required autocomplete="name" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
@@ -648,7 +692,28 @@ const FAQ_LD = {
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">What needs cleaning?</span>
                   <textarea name="message" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
                 </label>
+                {
+                  /* Turnstile. `interaction-only`, so a real visitor sees
+                     nothing and clicks nothing; it appears only for a visitor
+                     Cloudflare cannot clear silently. The token is verified in
+                     worker/quote.js — nothing here is a verdict.
+                     TODO(setup): without PUBLIC_TURNSTILE_SITEKEY no widget is
+                     rendered and /api/quote refuses everything, by design. */
+                  TURNSTILE_SITEKEY && (
+                    <div
+                      class="cf-turnstile pw-ts"
+                      data-sitekey={TURNSTILE_SITEKEY}
+                      data-action="quote"
+                      data-appearance="interaction-only"
+                      data-retry="auto"
+                      data-refresh-expired="auto"
+                    />
+                  )
+                }
                 <div role="alert" style="display:none;background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013"></div>
+                <noscript>
+                  <p style="background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013;margin:0">This form needs JavaScript. Please call 1 (416) 244-6497 and we will take the details over the phone.</p>
+                </noscript>
                 <button type="submit" style="width:100%;background:#0A4C8A;color:#FFFFFF;font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:18px;padding:17px 20px;border:0;border-radius:2px;min-height:56px;cursor:pointer" class="h4">
                   <span style="display:inline">Get My Free Quote</span><span style="display:none">Sending…</span>
                 </button>
@@ -1106,10 +1171,17 @@ const FAQ_LD = {
             <div>
               <h3 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h3>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
-              <form data-submit="submitFinal" novalidate style="display:grid;gap:14px">
-                <input type="hidden" name="access_key" value="">
-                <input type="hidden" name="subject" value="Quote request — Rexdale LP (final CTA form)">
-                <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
+              <form data-submit="submitFinal" data-placement="final" method="POST" action="/api/quote" novalidate style="display:grid;gap:14px">
+                {/* Honeypot — see .pw-hp. A hit is answered as a success: telling
+                    a bot it failed only makes it retry. */}
+                <div class="pw-hp" aria-hidden="true">
+                  <label for="final-website">Website</label>
+                  <input id="final-website" type="text" name="website" tabindex="-1" autocomplete="off">
+                </div>
+                {/* Filled in by the script at the end of the body. */}
+                <input type="hidden" name="placement" value="final">
+                <input type="hidden" name="form_elapsed_ms" value="">
+                <input type="hidden" name="page_url" value="">
                 <label style="display:block">
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">Full Name *</span>
                   <input type="text" name="name" required autocomplete="name" style="width:100%;padding:13px 14px;min-height:50px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C" class="f7">
@@ -1144,7 +1216,28 @@ const FAQ_LD = {
                   <span style="display:block;font-family:Oswald,sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:12px;color:#2A343E;margin-bottom:6px">What needs cleaning?</span>
                   <textarea name="message" rows="3" style="width:100%;padding:13px 14px;border:1.5px solid #C4CBD2;border-radius:2px;background:#FBFCFC;color:#12171C;resize:vertical" class="f7"></textarea>
                 </label>
+                {
+                  /* Turnstile. `interaction-only`, so a real visitor sees
+                     nothing and clicks nothing; it appears only for a visitor
+                     Cloudflare cannot clear silently. The token is verified in
+                     worker/quote.js — nothing here is a verdict.
+                     TODO(setup): without PUBLIC_TURNSTILE_SITEKEY no widget is
+                     rendered and /api/quote refuses everything, by design. */
+                  TURNSTILE_SITEKEY && (
+                    <div
+                      class="cf-turnstile pw-ts"
+                      data-sitekey={TURNSTILE_SITEKEY}
+                      data-action="quote"
+                      data-appearance="interaction-only"
+                      data-retry="auto"
+                      data-refresh-expired="auto"
+                    />
+                  )
+                }
                 <div role="alert" style="display:none;background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013"></div>
+                <noscript>
+                  <p style="background:#FBE9EA;border-left:4px solid #B5121A;padding:12px 14px;font-size:14.5px;line-height:1.5;color:#5A1013;margin:0">This form needs JavaScript. Please call 1 (416) 244-6497 and we will take the details over the phone.</p>
+                </noscript>
                 <button type="submit" style="width:100%;background:#0A4C8A;color:#FFFFFF;font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:18px;padding:17px 20px;border:0;border-radius:2px;min-height:56px;cursor:pointer" class="h4">
                   <span style="display:inline">Get My Free Quote</span><span style="display:none">Sending…</span>
                 </button>
@@ -1191,19 +1284,45 @@ const FAQ_LD = {
     <script is:inline>
       (function () {
         /* ------------------------------------------------------------------
-           Web3Forms access key. Empty means the forms are NOT connected: a
-           submission is refused in the browser and the visitor is told to
-           call, rather than posting a real enquiry into a void. Paste the key
-           here to switch both forms on — nothing else needs to change.
-           ------------------------------------------------------------------ */
-        var ACCESS_KEY = '';
+           Both quote forms post to /api/quote, which is worker/quote.js. They
+           used to post from here straight to api.web3forms.com with an access
+           key that was left empty — so every submission was refused in the
+           browser and no quote request from this page ever reached anyone.
 
+           Nothing in this script decides whether a submission is accepted. The
+           four bot-protection layers all run in the Worker (worker/guard.js);
+           what happens here is only what a browser has to carry: the dwell
+           timer, the page URL, waiting for the Turnstile token, and putting a
+           legible error on screen when the Worker refuses.
+           ------------------------------------------------------------------ */
+        var ENDPOINT = '/api/quote';
         var PHONE = "1 (416) 244-6497";
 
-        Array.prototype.forEach.call(
-          document.querySelectorAll('input[name="access_key"]'),
-          function (input) { input.value = ACCESS_KEY; }
-        );
+        /* Turnstile's script, added once, only if there is a widget to render. */
+        var TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+        if (
+          document.querySelector('.cf-turnstile') &&
+          !document.querySelector('script[src^="' + TURNSTILE_SRC + '"]')
+        ) {
+          var ts = document.createElement('script');
+          ts.src = TURNSTILE_SRC;
+          ts.async = true;
+          ts.defer = true;
+          document.head.appendChild(ts);
+        }
+
+        /* Wait for the widget to hand this form a token. It normally has one
+           long before anyone finishes typing; this only matters for a visitor
+           who fills the form faster than a slow network loads the widget. Ten
+           seconds, then let the Worker refuse it — a clear error beats a hang. */
+        function tokenFor(form, done) {
+          var started = Date.now();
+          (function tick() {
+            var field = form.querySelector('[name="cf-turnstile-response"]');
+            if ((field && field.value) || Date.now() - started > 10000) return done();
+            setTimeout(tick, 150);
+          })();
+        }
 
         /* ---- FAQ accordion ---- */
         Array.prototype.forEach.call(
@@ -1279,6 +1398,14 @@ const FAQ_LD = {
             var formPane = document.querySelector('[data-if="' + which + 'FormShow"]');
             var donePane = document.querySelector('[data-if="' + which + 'SuccessShow"]');
 
+            /* Dwell time. Elapsed milliseconds rather than a wall-clock stamp,
+               so a visitor whose device clock is wrong is not refused for it.
+               The Worker's floor is three seconds. */
+            var shownAt = Date.now();
+            var elapsedField = form.querySelector('[name="form_elapsed_ms"]');
+            var pageField = form.querySelector('[name="page_url"]');
+            if (pageField) pageField.value = window.location.href;
+
             function busy(on) {
               if (button) button.disabled = on;
               if (labels.length > 1) {
@@ -1289,6 +1416,11 @@ const FAQ_LD = {
 
             function fail(message) {
               busy(false);
+              /* A Turnstile token is single use. Without this reset a visitor
+                 told to fix their phone number would submit a spent token and
+                 be refused again, for a reason unrelated to what they fixed. */
+              var widget = form.querySelector('.cf-turnstile');
+              if (widget && window.turnstile) window.turnstile.reset(widget);
               if (!alertBox) return;
               alertBox.textContent =
                 message +
@@ -1302,44 +1434,44 @@ const FAQ_LD = {
               if (!form.reportValidity()) return;
               if (alertBox) alertBox.style.display = 'none';
 
-              if (!ACCESS_KEY) {
-                fail('This form is not connected yet.');
-                return;
-              }
-
               busy(true);
-              var data = {};
-              new FormData(form).forEach(function (value, key) { data[key] = value; });
+              if (elapsedField) elapsedField.value = String(Date.now() - shownAt);
+              if (pageField) pageField.value = window.location.href;
 
-              fetch('https://api.web3forms.com/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify(data)
-              })
-                .then(function (r) {
-                  return r.json().then(function (j) {
-                    return { ok: r.ok && j.success !== false, body: j };
+              tokenFor(form, function () {
+                var data = {};
+                new FormData(form).forEach(function (value, key) { data[key] = value; });
+
+                fetch(ENDPOINT, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                  body: JSON.stringify(data)
+                })
+                  .then(function (r) {
+                    return r.json().catch(function () { return {}; }).then(function (j) {
+                      return { ok: r.ok && j.ok !== false, body: j };
+                    });
+                  })
+                  .then(function (res) {
+                    if (!res.ok) {
+                      throw new Error((res.body && res.body.error) || 'Submission was rejected.');
+                    }
+                    /* generate_lead fires only once the Worker confirms the
+                       notification was sent — firing it on click would inflate
+                       conversions with abandoned and failed submissions. */
+                    window.dataLayer = window.dataLayer || [];
+                    window.dataLayer.push({ event: 'generate_lead' });
+                    busy(false);
+                    if (formPane) formPane.hidden = true;
+                    if (donePane) donePane.hidden = false;
+                    if (donePane && donePane.scrollIntoView) {
+                      donePane.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                  })
+                  .catch(function (err) {
+                    fail((err && err.message) || 'Network error.');
                   });
-                })
-                .then(function (res) {
-                  if (!res.ok) {
-                    throw new Error((res.body && res.body.message) || 'Submission was rejected.');
-                  }
-                  /* generate_lead fires only after Web3Forms confirms success —
-                     firing it on click would inflate conversions with abandoned
-                     and failed submissions. */
-                  window.dataLayer = window.dataLayer || [];
-                  window.dataLayer.push({ event: 'generate_lead' });
-                  busy(false);
-                  if (formPane) formPane.hidden = true;
-                  if (donePane) donePane.hidden = false;
-                  if (donePane && donePane.scrollIntoView) {
-                    donePane.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                  }
-                })
-                .catch(function (err) {
-                  fail((err && err.message) || 'Network error.');
-                });
+              });
             });
           }
         );

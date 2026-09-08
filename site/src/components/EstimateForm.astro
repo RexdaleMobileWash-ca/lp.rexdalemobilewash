@@ -11,9 +11,22 @@
  * not exist in a static build. It now posts to /api/contact, handled at request
  * time by worker/contact.js, which sends through Resend.
  *
- * The form works without JavaScript: a plain POST gets a 303 to /thank-you.
- * The script below upgrades that to a fetch so validation errors appear in
- * place instead of costing the visitor the page they were reading.
+ * BOT PROTECTION. Four layers, every one of them decided in the Worker — see
+ * worker/guard.js. What lives in this file is only the half a browser has to
+ * carry: the Turnstile widget, the honeypot field, the dwell timer and the
+ * error text. None of it is a verdict; a submission that skips all of it is
+ * refused by the Worker just the same.
+ *
+ * The Turnstile widget is configured `interaction-only`, so a real visitor sees
+ * nothing and clicks nothing. It becomes visible only for a visitor Cloudflare
+ * cannot clear silently, which is the point at which the alternative is
+ * refusing them outright.
+ *
+ * NOTE: the form no longer works without JavaScript. It used to — a plain POST
+ * got a 303 to /thank-you — but a Turnstile token cannot be produced without
+ * it, and the endpoint fails closed. The <noscript> block below tells anyone in
+ * that position to call instead, which is a better outcome than a form that
+ * silently refuses them.
  */
 interface Props {
   variant?: 'hero' | 'cta';
@@ -21,6 +34,21 @@ interface Props {
 }
 const { variant = 'hero', id = 'estimate' } = Astro.props;
 const ENDPOINT = '/api/contact';
+
+/*
+ * Public, not secret — it is served in the HTML either way. It is still an
+ * environment variable rather than a literal so that the key never lands in
+ * git and so staging and production can carry different widgets.
+ * See site/.env.example.
+ */
+const TURNSTILE_SITEKEY = import.meta.env.PUBLIC_TURNSTILE_SITEKEY ?? '';
+if (!TURNSTILE_SITEKEY) {
+  console.warn(
+    '[estimate form] PUBLIC_TURNSTILE_SITEKEY is not set, so no Turnstile ' +
+      'widget is being rendered. /api/contact fails closed, so the form will ' +
+      'refuse every submission until the key is set and the site is rebuilt.',
+  );
+}
 ---
 
 <form class={`ef ef--${variant}`} method="POST" action={ENDPOINT}>
@@ -90,21 +118,56 @@ const ENDPOINT = '/api/contact';
     Honeypot. Hidden from people and from screen readers, so anything that
     arrives filled in is a bot. The worker answers those 202 rather than an
     error — telling a bot it failed only makes it retry.
+
+    The field is `website`, not `company`: the quote form on /pressure-washing/
+    has a real, required `company` field, and one honeypot name across the site
+    is worth more than the name this form happened to start with.
   */}
   <div class="ef__hp" aria-hidden="true">
-    <label for={`${id}-company`}>Company</label>
+    <label for={`${id}-website`}>Website</label>
     <input
-      id={`${id}-company`}
-      name="company"
+      id={`${id}-website`}
+      name="website"
       type="text"
       tabindex="-1"
       autocomplete="off"
     />
   </div>
 
+  {/*
+    Filled in by the script below. `form_elapsed_ms` is how long the form was on
+    screen; the Worker refuses anything under three seconds. `page_url` is the
+    page the visitor was on, which the Worker checks is one of ours and then
+    puts in the notification email so an odd enquiry can be traced.
+  */}
+  <input type="hidden" name="form_elapsed_ms" value="" />
+  <input type="hidden" name="page_url" value="" />
+
+  {
+    TURNSTILE_SITEKEY ? (
+      <div
+        class="cf-turnstile ef__ts"
+        data-sitekey={TURNSTILE_SITEKEY}
+        data-action="estimate"
+        data-appearance="interaction-only"
+        data-retry="auto"
+        data-refresh-expired="auto"
+      />
+    ) : null
+    /* TODO(setup): set PUBLIC_TURNSTILE_SITEKEY and rebuild. Until then this
+       form refuses every submission, by design — see worker/guard.js. */
+  }
+
   <div class="ef__row">
     <button type="submit">Submit</button>
   </div>
+
+  <noscript>
+    <p class="ef__notice" data-tone="error">
+      This form needs JavaScript. Please call (416) 244-6497 and we will take
+      the details over the phone.
+    </p>
+  </noscript>
 
   <p class="ef__notice" role="status" aria-live="polite" hidden></p>
 </form>
@@ -112,12 +175,57 @@ const ENDPOINT = '/api/contact';
 <script>
   const PHONE = '(416) 244-6497';
 
+  /*
+   * Turnstile's script, added once per page however many forms are on it. This
+   * module is bundled once by Astro even though the component renders twice, so
+   * the guard is belt and braces rather than the thing doing the work.
+   */
+  const TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+  if (
+    document.querySelector('.cf-turnstile') &&
+    !document.querySelector(`script[src^="${TURNSTILE_SRC}"]`)
+  ) {
+    const s = document.createElement('script');
+    s.src = TURNSTILE_SRC;
+    s.async = true;
+    s.defer = true;
+    document.head.appendChild(s);
+  }
+
+  /*
+   * Wait for the widget to hand us a token. It normally already has one by the
+   * time anyone finishes typing; this only matters for a visitor who fills the
+   * form faster than a slow network loads the widget. Ten seconds, then give up
+   * and let the Worker refuse it — better a clear error than a silent hang.
+   */
+  const tokenFor = (form: HTMLFormElement) =>
+    new Promise<string>((resolve) => {
+      const field = () =>
+        form.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]');
+      const started = Date.now();
+      const tick = () => {
+        const value = field()?.value ?? '';
+        if (value || Date.now() - started > 10000) return resolve(value);
+        window.setTimeout(tick, 150);
+      };
+      tick();
+    });
+
   document.querySelectorAll<HTMLFormElement>('.ef').forEach((form) => {
-    const notice = form.querySelector<HTMLParagraphElement>('.ef__notice');
+    const notice = form.querySelector<HTMLParagraphElement>('.ef__notice:not([data-tone])');
     const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
     if (!notice || !button) return;
 
     const label = button.textContent;
+
+    // Dwell time. Measured as elapsed milliseconds rather than sent as a wall
+    // clock timestamp, so a visitor whose device clock is wrong is not refused
+    // for it. The Worker's floor is three seconds.
+    const shownAt = Date.now();
+
+    const elapsedField = form.querySelector<HTMLInputElement>('[name="form_elapsed_ms"]');
+    const pageField = form.querySelector<HTMLInputElement>('[name="page_url"]');
+    if (pageField) pageField.value = window.location.href;
 
     const say = (message: string, tone: 'error' | 'busy') => {
       notice.textContent = message;
@@ -132,6 +240,10 @@ const ENDPOINT = '/api/contact';
       button.disabled = true;
       button.textContent = 'Sending…';
       say('Sending your request…', 'busy');
+
+      if (elapsedField) elapsedField.value = String(Date.now() - shownAt);
+      if (pageField) pageField.value = window.location.href;
+      await tokenFor(form);
 
       try {
         const response = await fetch(form.action, {
@@ -157,6 +269,15 @@ const ENDPOINT = '/api/contact';
         // file:// preview, which has no worker behind it.
         say(`We could not reach the server. Please call ${PHONE}.`, 'error');
       }
+
+      // A Turnstile token is single use. Without this reset a visitor who is
+      // told to fix their phone number would submit a spent token and be
+      // refused a second time, for a reason that has nothing to do with what
+      // they just corrected.
+      const widget = form.querySelector('.cf-turnstile');
+      const turnstile = (window as unknown as { turnstile?: { reset(el: Element): void } })
+        .turnstile;
+      if (widget && turnstile) turnstile.reset(widget);
 
       button.disabled = false;
       button.textContent = label;
@@ -262,6 +383,15 @@ const ENDPOINT = '/api/contact';
     clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
+  }
+
+  /*
+   * Turnstile, appearance "interaction-only": the widget renders nothing and
+   * takes no space for a visitor Cloudflare clears silently, which is almost
+   * all of them. :empty keeps the margin off until there is something to show.
+   */
+  .ef__ts:not(:empty) {
+    margin: 0 0 10px;
   }
 
   .ef__notice {

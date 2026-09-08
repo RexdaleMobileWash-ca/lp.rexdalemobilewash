@@ -7,17 +7,21 @@ comment beside the block it came from.
 
 ## Status
 
-**Builds clean.** 4 pages, zero errors, zero warnings. `site/dist/` is build
-output and is not committed — `.gitignore` excludes it, and Railway builds from
-source.
+**Builds clean.** 4 pages, zero errors. `site/dist/` is build output and is not
+committed — `.gitignore` excludes it, and Railway builds from source.
 
 ```bash
 cd site
 npm install --omit=optional
 npm install @rolldown/binding-linux-x64-gnu@1.2.7   # see note below
 npm run build
+npm run prove:forms                                 # bot protection, both endpoints
 node bin/make-standalone.mjs                        # refresh site/standalone/
 ```
+
+The build prints a warning per page when `PUBLIC_TURNSTILE_SITEKEY` is unset —
+that is the intended signal that the forms will refuse every submission, not a
+defect. See **Bot protection** below.
 
 ### The install note that matters
 
@@ -42,9 +46,17 @@ site/
     pages/      index.astro privacy-policy.astro thank-you.astro
                 pressure-washing.astro   (self-contained, see below)
   public/pw-assets/   images + fonts for the pressure-washing page only
+  worker/
+    index.js    the fetch handler — noindex wrapper + the two form routes
+    contact.js  POST /api/contact   the estimate forms
+    quote.js    POST /api/quote     the pressure-washing quote forms
+    guard.js    the four bot-protection layers, shared by both endpoints
+    mail.js     Resend call, addressing, and the origin block on notifications
   dist/         astro build output, directory format (gitignored)
   standalone/   flat single-file HTML, CSS inlined, opens from file://
-  bin/make-standalone.mjs   regenerates standalone/ from dist/
+  .env.example  build-time variables (PUBLIC_TURNSTILE_SITEKEY); .env is ignored
+  bin/make-standalone.mjs        regenerates standalone/ from dist/
+  bin/prove-bot-protection.mjs   runs both endpoints and checks what they do
 bin/where.py    gate-record reader from the earlier scaffolding attempt
 ```
 
@@ -83,18 +95,21 @@ that reads the export at build time.
 
 ### Before this page goes live
 
-**The quote forms are not connected.** The design posts to Web3Forms; no access
-key was supplied. `ACCESS_KEY` at the top of the page's inline script is empty,
-and while it is empty a submission is refused in the browser with a visible
-"not connected yet, please call" message rather than posting a real enquiry into
-a void — the same posture as `EstimateForm.astro`. Paste the key there and both
-forms switch on; nothing else needs to change. Until then the page's only
-working conversion path is the phone number.
+**The quote forms need `PUBLIC_TURNSTILE_SITEKEY` and the two Worker secrets.**
+They post to `POST /api/quote` (`worker/quote.js`), which fails closed: until
+the keys are set, every submission is refused with a visible "please call"
+message rather than posting a real enquiry into a void, and the page's only
+working conversion path is the phone number. See **Bot protection → Before
+deploying** below.
+
+They previously posted straight to Web3Forms with an `ACCESS_KEY` that was never
+filled in, so they refused everything in the browser and no server of ours was
+in the path at all. That is why they moved.
 
 The page uses the same GTM container as the rest of the build
-(`GTM-NMTLRJ63`), and pushes `generate_lead` to the dataLayer only after
-Web3Forms confirms a success — not on click, which would count abandoned and
-failed submissions as conversions.
+(`GTM-NMTLRJ63`), and pushes `generate_lead` to the dataLayer only after the
+Worker confirms the notification was sent — not on click, which would count
+abandoned and failed submissions as conversions.
 
 ## Staging
 
@@ -165,12 +180,30 @@ only referenced through kit variables that every visible element overrides;
 **Roboto Slab** is declared as `--e-global-typography-secondary` and never
 loads at all. Only the two families that do visible work are requested.
 
-## The contact form
+## The forms
 
-Both estimate forms (hero and closing CTA) post to **`POST /api/contact`**,
-handled at request time by `site/worker/contact.js` and sent through Resend.
+There are four form instances on this site, and they use two endpoints:
 
-The route lives in the Worker, not in `src/pages`. The build is
+| Form | Page | Endpoint / handler |
+|---|---|---|
+| Estimate — hero panel | `/` | `POST /api/contact` — `worker/contact.js` |
+| Estimate — closing CTA | `/` | `POST /api/contact` — `worker/contact.js` |
+| Quote — hero panel | `/pressure-washing/` | `POST /api/quote` — `worker/quote.js` |
+| Quote — closing CTA | `/pressure-washing/` | `POST /api/quote` — `worker/quote.js` |
+
+Both estimate forms are the same component (`components/EstimateForm.astro`)
+rendered twice. Both quote forms are inline in `pages/pressure-washing.astro`.
+Everything goes out through Resend. There is no newsletter signup, no booking
+form and no file upload anywhere in the repo.
+
+The two quote forms used to post straight from the browser to
+`api.web3forms.com` with an access key pasted into the page — and that key was
+the empty string, so both forms refused every submission in the browser and no
+quote request from that page ever reached anyone. They now post to the Worker
+like the estimate forms do, which is what makes server-side protection possible
+at all: there was previously no server of ours in that path.
+
+The routes live in the Worker, not in `src/pages`. The build is
 `output: 'static'`, so a route under `src/pages` would be prerendered to a file
 and would accept nothing. Keeping it in the Worker also preserves the noindex
 wrapper in `worker/index.js`, which the `@astrojs/cloudflare` adapter would
@@ -211,19 +244,182 @@ build runs and absent when the route executes: the build passes and the form
 500s in production. Everything else (addresses, site name) is a plain `var` in
 `wrangler.jsonc` on purpose, so it is visible in review.
 
-### Abuse protection, and what is actually protecting it
+## Bot protection
 
-- **Honeypot** — a hidden `company` field. Anything that arrives filled in is a
-  bot, and gets a `202` rather than an error, because telling a bot it failed
-  only makes it retry. This stops more real-world form spam than the rate limit.
-- **Rate limit** — 8/min per IP via the Workers rate limiting binding. Know what
-  this is: it is counted **per data centre** and is documented as "permissive,
-  eventually consistent, and intentionally designed to not be used as an
-  accurate accounting system". A caller spread across colos gets a multiple of
-  the limit. It is a brake on the naive case, not a guarantee.
-- **Not yet present:** a WAF rate limiting rule and Turnstile. Both need a
-  Cloudflare **zone** to attach to, and this is served from `workers.dev`. Add
-  them when the Worker gets a custom domain.
+Four layers, on **both** endpoints, all decided in the Worker, all enforced
+before the first Resend call. The shared implementation is
+`site/worker/guard.js`; read that file before changing the order of anything.
+
+Nothing in the browser is a verdict. The client-side script exists to keep the
+widget invisible and the errors legible; a submission that skips all of it is
+refused just the same.
+
+### 1. Cloudflare Turnstile
+
+Widget on every form, token verified server-side against `siteverify`. No valid
+token, nothing sent. The widget is configured `appearance="interaction-only"`,
+so a real visitor sees nothing and clicks nothing — it becomes visible only for
+a visitor Cloudflare cannot clear silently, where the alternative is refusing
+them outright.
+
+**Fails closed, including when the secret is missing.** An endpoint that waves
+submissions through because a secret was never set is the failure this whole
+thing exists to remove, so a missing `TURNSTILE_SECRET_KEY` is a loud 500, not a
+silent bypass. Both forms refuse everything until it is set.
+
+The sitekey is public and lives in `PUBLIC_TURNSTILE_SITEKEY`, a build-time
+environment variable, not in git — see `site/.env.example`.
+
+**The widget's allowed hostnames must list every hostname the site is served
+on**, or the token verifies nowhere and every submission fails with nothing in
+the response explaining why (the Worker logs a specific line when it sees this):
+
+```
+staging-lp-rexdalemobilewash.ash-47a.workers.dev
+lp.rexdalemobilewash.ca
+www.lp.rexdalemobilewash.ca
+```
+
+### 2. Honeypot + dwell time
+
+- **Honeypot** — a `website` field, positioned off-screen (not `display:none`
+  alone — a bot that skips `display:none` fields still fills this one),
+  `aria-hidden`, `tabindex="-1"`. Anything that arrives filled in is a bot and
+  gets a success answer rather than an error, because telling a bot it failed
+  only makes it retry.
+  It is `website` and not `company` because the quote form has a real, required
+  `company` field.
+- **Dwell time** — the browser records how long the form was on screen and sends
+  the elapsed milliseconds; under three seconds is refused, as is a submission
+  with no dwell value at all. Elapsed rather than a wall-clock timestamp, so a
+  visitor whose device clock is wrong is not refused for it.
+
+Both are client-measured and therefore forgeable by anyone who bothers. They are
+worth having because most form spam does not bother — not because they prove
+anything. Turnstile is the layer that does.
+
+### 3. Server-side sanity validation
+
+Phone under 7 digits, name or company under 2 characters, obvious placeholders
+(`x`, `test`, `asdf`, one repeated character…), a property type not on the
+select's own list, and an email domain that publishes no way to receive mail.
+Every message is written for a person who typed something slightly wrong,
+because most of the people who see one will be exactly that.
+
+The mail check is an MX lookup over DNS-over-HTTPS. A domain with no MX but an
+A/AAAA record still receives mail (RFC 5321 makes the address record an implicit
+MX), so that counts. It **fails open** on a DNS timeout: a DoH hiccup must never
+cost the client a lead.
+
+### 4. Per-IP rate limit
+
+Two limits, and they do different jobs:
+
+- **3 accepted submissions per hour, per form, per IP**, keyed on
+  `CF-Connecting-IP` and counted in KV (`FORM_RATE_LIMIT`). Counted on the way
+  *out* — the check reads, the send writes — so a visitor who fumbles validation
+  three times is not locked out of the form, while nobody can make it send more
+  than three emails an hour.
+- **8 requests per minute per IP** via the Workers rate-limiting binding, on
+  everything that reaches a handler including submissions that will be rejected,
+  so a flood of deliberately malformed payloads is capped before any outbound
+  call is made on its behalf. Know what this one is: it is counted **per data
+  centre** and Cloudflare documents it as "permissive, eventually consistent,
+  and intentionally designed to not be used as an accurate accounting system".
+  A caller spread across colos gets a multiple of the limit. It is a brake on
+  the naive case, not a guarantee.
+
+The KV namespace does not exist yet — `wrangler.jsonc` carries a placeholder id
+and `wrangler deploy` will refuse it until it is created. See **Before
+deploying** below.
+
+### Every rejection is logged
+
+One line per refusal, structured so it can be grepped or piped:
+
+```
+form-reject {"evt":"form-reject","form":"quote","reason":"dwell-too-fast",
+             "ip":"…","country":"CA","city":"Toronto","page":"…","ts":"…"}
+```
+
+Accepted submissions log `form-accept` in the same shape.
+
+### Notifications now say where a submission came from
+
+The old notification said "Sent from the website form" and nothing else, so a
+suspicious enquiry could not be traced without going into Workers logs — which
+in practice meant it was never traced. Every notification now carries a **Where
+this came from** block: which form, the page URL, the IP, Cloudflare's
+country/city for that IP, the network, and the received timestamp. Nothing else
+about the templates changed, and the sending domain is untouched.
+
+It is diagnostic, not evidence: `CF-Connecting-IP` is set by the edge and cannot
+be forged by the caller, but geolocating an IP is approximate and a VPN moves it
+entirely.
+
+### Duplicate sends
+
+The four-identical-emails bug seen on another site in this stack is **not**
+present here, and the build output confirms it: Astro bundles the estimate
+form's component script once per page even though the component renders twice,
+so one submit listener is attached per form, and the page's own inline script on
+`/pressure-washing/` appears once. Each submission produces one notification
+(plus, on `/api/contact` only, one confirmation to the enquirer).
+
+Every Resend call now also carries an `Idempotency-Key` derived from the form,
+the recipient, the payload and the minute, so a handler invoked twice for the
+same submission produces one email — while a visitor who genuinely submits again
+five minutes later still gets through.
+
+### Proving it
+
+```bash
+cd site && npm run prove:forms
+```
+
+Imports the two handlers and calls them with real `Request` objects, so what
+runs is `worker/contact.js` and `worker/quote.js` exactly as deployed. Only two
+things are faked: Resend is a local HTTP server that counts sends, and KV is a
+`Map`. **Turnstile is not faked** — the requests go to the real `siteverify`
+endpoint using Cloudflare's published test secrets, and the MX check talks to
+real DNS.
+
+31 expectations, covering: a POST with no token refused with nothing sent, on
+both endpoints; a token siteverify rejects; a missing secret failing closed; the
+honeypot answered as a success; dwell under three seconds; each sanity rule; a
+valid submission on each endpoint sending exactly once with the origin fields
+present; and the fourth submission in an hour refused with zero emails.
+
+### Not present, and why
+
+A WAF rate-limiting rule needs a Cloudflare **zone** to attach to, and this is
+served from `workers.dev`. Add one when the Worker gets a custom domain; the
+four layers above do not depend on it.
+
+### Before deploying
+
+Two Worker secrets, one build variable, one KV namespace:
+
+```bash
+cd site
+
+# 1. Worker secrets — NOT Build variables. A Build variable is present while the
+#    build runs and absent when the route executes: the build passes and the
+#    form fails in production.
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put TURNSTILE_SECRET_KEY
+
+# 2. KV namespace for the hourly limit. Paste the id it prints into the
+#    kv_namespaces block in wrangler.jsonc, replacing the placeholder.
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler kv namespace create FORM_RATE_LIMIT
+
+# 3. Build variable — public, but not committed. Put it in site/.env, or export
+#    it in the shell that runs the build.
+echo 'PUBLIC_TURNSTILE_SITEKEY=0x…' >> .env
+```
+
+And in the Cloudflare dashboard, create the Turnstile widget in **Invisible**
+mode with the three hostnames listed above.
 
 ### Client mail, re-proven after this change
 

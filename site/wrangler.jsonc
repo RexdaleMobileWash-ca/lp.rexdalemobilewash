@@ -41,20 +41,49 @@
     "CONTACT_CONFIRM": "true"
   },
 
-  // RESEND_API_KEY is NOT here. It is a Worker secret:
+  // NO SECRETS ARE IN THIS FILE, and none may be added to "vars".
+  //
   //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
-  // Adding it as a Build variable instead is the trap: it is present while the
-  // build runs and absent when the route executes, so the build passes and the
-  // form 500s in production.
+  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put TURNSTILE_SECRET_KEY
+  //
+  // Adding either as a Build variable instead is the trap: it is present while
+  // the build runs and absent when the route executes, so the build passes and
+  // the form fails in production. Both endpoints fail CLOSED without them —
+  // /api/contact and /api/quote refuse every submission until they are set.
+  //
+  // The Turnstile SITEKEY is public and is not a secret, but it is not in this
+  // file either: it is baked into the HTML at build time from the environment
+  // variable PUBLIC_TURNSTILE_SITEKEY. See site/.env.example.
 
-  // Per-IP rate limit on the form. A public form with no limit is a spam relay,
-  // and the sending reputation it would burn is the shared domain's. `period`
-  // accepts only 10 or 60.
+  // Layer 4, part one: the burst brake. Per-IP, per data centre, and counted on
+  // every request that reaches the handler with a body — including ones that
+  // will be rejected — so a flood of deliberately malformed payloads is capped
+  // before any outbound call is made on its behalf. `period` accepts only 10
+  // or 60. Cloudflare documents this binding as permissive and eventually
+  // consistent; it is a brake on the naive case, not an accounting system.
   "ratelimits": [
     {
       "name": "CONTACT_RATE_LIMIT",
       "namespace_id": "1001",
       "simple": { "limit": 8, "period": 60 }
+    }
+  ],
+
+  // Layer 4, part two: the hourly limit the brake above cannot express, since
+  // `period` only accepts 10 or 60 seconds. Three ACCEPTED submissions per hour
+  // per form per IP, counted in KV by worker/guard.js. Counted on the way out
+  // rather than the way in, so a visitor who fumbles validation is not locked
+  // out of the form.
+  //
+  // TODO(setup): this id is a placeholder and `wrangler deploy` will refuse it.
+  // Create the namespace once and paste its id here:
+  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler kv namespace create FORM_RATE_LIMIT
+  // Until then the hourly limit is not enforced and the Worker logs a loud
+  // error saying so on every submission; the burst brake above still applies.
+  "kv_namespaces": [
+    {
+      "binding": "FORM_RATE_LIMIT",
+      "id": "REPLACE_ME_form_rate_limit_namespace_id"
     }
   ],
 

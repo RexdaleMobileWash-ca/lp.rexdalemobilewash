@@ -35,23 +35,40 @@ CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler deploy
 After deploying, verify against the live URL rather than trusting the
 build — fetch the page and grep for what you changed.
 
-## The contact form has a Worker secret — redeploys do not carry it
+## The form endpoints have Worker secrets — redeploys do not carry them
 
-`POST /api/contact` (see `site/worker/contact.js`) needs `RESEND_API_KEY`, set
-as a **Worker secret**, not a build variable or a `var` in `wrangler.jsonc`. A
-build variable is present while the build runs and absent when the route
-executes — the build passes and the form 500s in production.
-
-The secret lives on the Worker, not in the repo, so a Worker created fresh (new
-name, new account) starts without it and the form will 500 until:
+`POST /api/contact` (`site/worker/contact.js`) and `POST /api/quote`
+(`site/worker/quote.js`) need **two** Worker secrets — not build variables, not
+`var`s in `wrangler.jsonc`. A build variable is present while the build runs and
+absent when the route executes: the build passes and the form fails in
+production.
 
 ```bash
 cd site
 CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put TURNSTILE_SECRET_KEY
 ```
 
-`npx wrangler secret list` confirms it by name. Ordinary `wrangler deploy`
-preserves it.
+Both fail **closed**. Without `TURNSTILE_SECRET_KEY` every submission is refused
+with a 500 and a loud log line — deliberately, so a missing secret can never
+turn the endpoints into an open relay. The secrets live on the Worker, not in
+the repo, so a Worker created fresh (new name, new account) starts without them.
+
+`npx wrangler secret list` confirms them by name. Ordinary `wrangler deploy`
+preserves them.
+
+Two more things are needed before a deploy succeeds, and neither is a secret:
+
+- **`PUBLIC_TURNSTILE_SITEKEY`** — public, but build-time and not committed.
+  Without it the build still passes and prints a warning; the forms render no
+  widget and the endpoints refuse everything. See `site/.env.example`.
+- **The `FORM_RATE_LIMIT` KV namespace** — `wrangler.jsonc` carries a
+  placeholder id and `wrangler deploy` refuses it until the namespace is created
+  and its id pasted in.
+
+`cd site && npm run prove:forms` exercises both endpoints end to end (real
+Turnstile siteverify, real DNS, mocked Resend) and is the fastest way to tell
+whether a change to `worker/guard.js` broke something.
 
 ## Staging vs live
 
