@@ -1,7 +1,6 @@
 # rexdalemobilewash-lp
 
-Astro replica of `lp.rexdalemobilewash.ca`, built the same way as
-briansmasonry: the live Elementor stylesheets ported declaration-by-declaration
+Astro replica of `lp.rexdalemobilewash.ca`,: the live Elementor stylesheets ported declaration-by-declaration
 into scoped Astro `<style>` blocks, with each Elementor element id kept in a
 comment beside the block it came from.
 
