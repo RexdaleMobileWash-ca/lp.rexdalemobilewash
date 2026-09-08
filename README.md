@@ -267,6 +267,80 @@ egress proxy resets browser connections. The asset sweep above stands in for it:
 every stylesheet, script, font and image the four pages reference was fetched
 and returned 200.
 
+## Keeping the old links working — gate 14, partial
+
+AD-10: nothing is retired. The map is short because almost nothing moved —
+`/`, `/thank-you/` and `/privacy-policy/` all kept their paths, so no page
+needs a rule at all.
+
+### The images wildcard — done
+
+Every old media address 301s to the bucket:
+
+```
+/wp-content/uploads/*  ->  https://img-lp.rexdalemobilewash.ca/wp-content/uploads/*
+```
+
+**Host swap only, path untouched.** The generic procedure uses
+`substring(http.request.uri.path, 20)` because it assumes the bucket strips
+`/wp-content/uploads/`; this bucket deliberately kept the WordPress key layout,
+so applying that shape here would 404 every image. Verified: all 21 old upload
+addresses the live site references return 301 and then 200.
+
+These are the addresses that leaked outward — Google Images, social unfurl
+caches, anything that hotlinked a photo — and they 404'd from the moment the
+domain moved.
+
+`/wp-content/plugins/…`, `/wp-content/themes/…` and `/wp-includes/…` are
+deliberately **not** redirected. They existed only to render the old Elementor
+page and nothing outside the old site linked to them; 404 is the honest answer.
+One exception falls out of the wildcard: `/wp-content/uploads/elementor/…`
+generated CSS 301s to the bucket and then 404s, because it was never copied
+there. Harmless — nothing external references it.
+
+### Where it lives, and why not Redirect Rules
+
+The procedure says to put this in Cloudflare → Rules → Redirect Rules, on the
+reasoning that a redirect inside WordPress dies when WordPress is switched off
+at gate 20. It is in `worker/index.js` instead, for two reasons:
+
+1. **`CF_API_TOKEN` cannot write Rules.** It reads rulesets fine but every write
+   returns `request is not authorized`, and the account-level rules endpoints
+   return 403. Bulk Redirects are not reachable either.
+2. The reasoning does not transfer. The Worker is not the old site — it *is* the
+   new one, and it outlives gate 20.
+
+What Redirect Rules would still buy: independence from a bad Worker deploy, and
+evaluation before the Worker runs. If that is wanted, the rule to create by hand
+is — and note the host condition, which is **not** optional:
+
+```
+expression: (http.host eq "lp.rexdalemobilewash.ca"
+             and starts_with(http.request.uri.path, "/wp-content/uploads/"))
+target:     concat("https://img-lp.rexdalemobilewash.ca", http.request.uri.path)
+status:     301        preserve query string: on
+```
+
+Without `http.host`, the rule also catches `rexdalemobilewash.ca`, whose images
+live in a **different** bucket (`img.rexdalemobilewash.ca`) — every image on the
+main site would be redirected to the wrong place. Delete the `UPLOADS_PREFIX`
+branch in `worker/index.js` if the rule is created, so there is one owner.
+
+### Not yet decided — WordPress plumbing addresses
+
+The old site also answered on paths that cannot exist on a static site. Their
+destinations are a gate 0.1 decision (`retired_url_targets`) and that record is
+in the command repo, so **they are deliberately left 404 pending a decision**:
+
+```
+/feed/  /comments/feed/                     WordPress feeds (no blog ever existed)
+/wp-json/  /wp-json/wp/v2/pages/11  /wp-json/oembed/1.0/embed
+/xmlrpc.php   /wp-admin/admin-ajax.php
+/author/ashbrandingcentres-com/             author archive — was indexable
+```
+
+Of these, only `/author/ashbrandingcentres-com/` was a real indexable page.
+
 ### Still open after the cutover
 
 Analytics parity is done (see *Analytics* below). These are not, and are now

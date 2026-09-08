@@ -62,19 +62,54 @@ function isPreviewHostname(hostname) {
  */
 const ALIASES = new Map([['/pressurewashing', '/pressure-washing/']]);
 
+/**
+ * Old WordPress image addresses (gate 14, AD-10 — nothing is retired).
+ *
+ * The WordPress install served its media from
+ * `lp.rexdalemobilewash.ca/wp-content/uploads/…`, and those addresses are the
+ * ones that leaked outward: Google Images, social unfurl caches, and any site
+ * that hotlinked a photo. They are not ours to break, and they 404'd from the
+ * moment the domain moved to this Worker.
+ *
+ * The B2 bucket deliberately kept the WordPress key layout, so this is a host
+ * swap with the path left completely alone — NOT the `substring(path, 20)`
+ * shape the generic procedure uses, which assumes the bucket strips
+ * `/wp-content/uploads/`. Applying that here would 404 every one of them.
+ *
+ * `/wp-content/plugins/…`, `/wp-content/themes/…` and `/wp-includes/…` are
+ * deliberately NOT redirected. They existed only to render the old page — the
+ * Elementor and jQuery bundles — and nothing outside the old site ever linked
+ * to them. A 404 is the honest answer.
+ */
+const UPLOADS_PREFIX = '/wp-content/uploads/';
+const IMG_ORIGIN = 'https://img-lp.rexdalemobilewash.ca';
+
+/**
+ * 301, never 302. A 302 says the old address is coming back, so search engines
+ * hold the ranking on the dead URL instead of passing it to the live one. It
+ * looks identical to a visitor and quietly costs the client their position.
+ *
+ * The query string is always carried across: an Ads click arrives with gclid,
+ * and dropping it breaks conversion attribution.
+ */
+function permanentRedirect(location, noindex) {
+  const headers = { Location: location };
+  if (noindex) headers['X-Robots-Tag'] = 'noindex, nofollow';
+  return new Response(null, { status: 301, headers });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const noindex = env.NOINDEX === 'true' || isPreviewHostname(url.hostname);
 
-    // `url.search` is carried across deliberately: an Ads click arrives with
-    // gclid, and dropping it breaks conversion attribution for exactly the
-    // traffic this alias exists to catch.
     const canonical = ALIASES.get(url.pathname.replace(/\/+$/, '') || '/');
     if (canonical) {
-      const headers = { Location: new URL(canonical + url.search, url).toString() };
-      if (noindex) headers['X-Robots-Tag'] = 'noindex, nofollow';
-      return new Response(null, { status: 301, headers });
+      return permanentRedirect(new URL(canonical + url.search, url).toString(), noindex);
+    }
+
+    if (url.pathname.startsWith(UPLOADS_PREFIX)) {
+      return permanentRedirect(IMG_ORIGIN + url.pathname + url.search, noindex);
     }
 
     if (url.pathname === '/api/contact' || url.pathname === '/api/contact/') {
