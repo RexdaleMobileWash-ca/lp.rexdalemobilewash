@@ -81,7 +81,7 @@ const ENDPOINT = '/api/contact';
     <textarea
       id={`${id}-message`}
       name="message"
-      rows="3"
+      rows="2"
       placeholder="Message"
       maxlength="4000"></textarea>
   </div>
@@ -183,17 +183,25 @@ const ENDPOINT = '/api/contact';
     gap: 10px;
   }
 
+  /* Elementor's .elementor-size-sm field: 8px/16px padding on a 40px floor,
+     which is what puts the live rows on a 50px pitch. The port's 12px/14px
+     made every field 43px and stretched the two forms by ~30px each. */
   input,
   textarea {
+    /* block, so the field's row is exactly the field's height — as an inline
+       box the textarea dragged 7px of baseline descender into the row */
+    display: block;
     width: 100%;
     font-family: var(--f-body);
     font-weight: 400;
     font-size: 15px;
+    line-height: 21px;
     color: #000;
     background-color: #fff;
     border: 1px solid var(--c-blue-pale);
     border-radius: 5px;
-    padding: 12px 14px;
+    padding: 8px 16px;
+    min-height: 40px;
   }
 
   input::placeholder,
@@ -207,21 +215,25 @@ const ENDPOINT = '/api/contact';
     outline-offset: 1px;
   }
 
+  /* two rows at 21px inside 5px padding — a 54px box, as on the live form */
   textarea {
     resize: vertical;
-    min-height: 76px;
+    padding: 5px 14px;
   }
 
-  /* .elementor-button : Source Sans Pro 18px 500 uppercase */
+  /* .elementor-button elementor-size-sm : Source Sans Pro 18px/1 500 uppercase,
+     0/24px padding on the same 40px floor as the fields */
   button[type='submit'] {
     width: 100%;
     font-family: var(--f-head);
     font-size: 18px;
     font-weight: 500;
+    line-height: 1;
     text-transform: uppercase;
     border: 0;
     border-radius: 3px;
-    padding: 13px 20px;
+    padding: 0 24px;
+    min-height: 40px;
     cursor: pointer;
     transition: background-color 0.3s, color 0.3s;
   }

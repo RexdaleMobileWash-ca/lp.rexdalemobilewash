@@ -3,21 +3,23 @@
  * Ported from post-110.css — #1c6b9f7f wrapper, #77e9eca4 row,
  * icon boxes #7e2c743e / #1829e18c / #182c97aa (identical styling).
  */
+import { icons } from '../icons';
+
 const steps = [
   {
     title: 'Request a Quote',
     body: 'Fill out our quick online form or call us directly to get a personalized quote for your service needs.',
-    path: 'M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.6 3.4 6-.2 1.4-.9 2.7-1.9 3.7 1.9-.2 3.7-.9 5.2-2 1 .2 2.1.3 3.3.3 5.5 0 10-3.6 10-8s-4.5-8-10-8Zm-4 9a1.3 1.3 0 1 1 0-2.6A1.3 1.3 0 0 1 8 12Zm4 0a1.3 1.3 0 1 1 0-2.6A1.3 1.3 0 0 1 12 12Zm4 0a1.3 1.3 0 1 1 0-2.6A1.3 1.3 0 0 1 16 12Z',
+    icon: icons.commentDots,
   },
   {
     title: 'Schedule Your Service',
     body: 'Choose a convenient date and time for our team to arrive and complete the job efficiently.',
-    path: 'M7 2v2H5.5A2.5 2.5 0 0 0 3 6.5v13A2.5 2.5 0 0 0 5.5 22h13a2.5 2.5 0 0 0 2.5-2.5v-13A2.5 2.5 0 0 0 18.5 4H17V2h-2v2H9V2H7Zm12 8v9.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V10h14Zm-11 2H6v2h2v-2Zm5 0h-2v2h2v-2Zm5 0h-2v2h2v-2Z',
+    icon: icons.calendarDay,
   },
   {
     title: 'Get Exceptional Results',
     body: 'Our professionals handle everything, leaving your property spotless and refreshed.',
-    path: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.2 14.4-4-4 1.7-1.7 2.3 2.3 5.1-5.1 1.7 1.7-6.8 6.8Z',
+    icon: icons.checkCircle,
   },
 ];
 ---
@@ -30,8 +32,8 @@ const steps = [
         <article class="step">
           {/* .elementor-icon font-size 65px (50px <=1024), colour #164E83 */}
           <span class="step__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d={s.path} />
+            <svg viewBox={s.icon.vb} fill="currentColor">
+              <path d={s.icon.d} />
             </svg>
           </span>
           {/* .elementor-icon-box-title SSP 22px/600 #376898 (20px <=767) */}
@@ -50,6 +52,8 @@ const steps = [
     padding: 10px;
   }
 
+  /* The live row #77e9eca4 has no padding of its own and a 20px gap — the
+     invented 40px band pushed everything below it down by 80px. */
   .steps__inner {
     width: 100%;
     max-width: var(--wrap-max);
@@ -57,9 +61,11 @@ const steps = [
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    padding: 40px 0;
+    gap: 20px;
   }
 
+  /* The spacing inside an icon box comes from the title's own margins
+     (8px above, 5px below), not from a flex gap. */
   .step {
     flex: 1 1 240px;
     padding: 10px;
@@ -67,7 +73,6 @@ const steps = [
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
   }
 
   .step__icon {
@@ -84,8 +89,10 @@ const steps = [
     font-family: var(--f-head);
     font-size: 22px;
     font-weight: 600;
+    line-height: 1.2em;
     color: var(--c-blue-mid);
-    margin: 0 0 5px;
+    /* 8px below the icon, 5px above the description */
+    margin: 8px 0 5px;
   }
 
   .step__body {
@@ -112,9 +119,6 @@ const steps = [
   }
 
   @media (max-width: 1024px) {
-    .step {
-      gap: 0;
-    }
     .step__icon svg {
       width: 50px;
       height: 50px;

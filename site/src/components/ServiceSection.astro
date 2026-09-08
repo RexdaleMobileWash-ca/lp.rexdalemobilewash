@@ -11,9 +11,13 @@
  *   image frame shadow 8px -8px 0 10px #DFEBFF
  *
  * Media column is 40%, copy column 60% at >=768px; 50/50 in the 768-1024
- * band; stacked below that. On dark sections the copy column carries
- * --order:-99999 so the text leads.
+ * band; stacked below that. The dark sections put the copy first in source
+ * order so the text leads on desktop, and their media column carries
+ * --order:-99999 at <=767px so the photo leads on a phone — every block on
+ * the live site opens with its image at mobile.
  */
+import { icons } from '../icons';
+
 interface Props {
   id: string;
   eid: string;
@@ -38,6 +42,26 @@ const {
   bullets,
   note,
 } = Astro.props;
+
+/**
+ * NO SRCSET — the derivative files do not exist.
+ *
+ * WordPress generated 300 / 768 / 1024 / full variants of each of these photos
+ * and the live Elementor page shipped them all as a srcset, so serving only the
+ * 1141px original makes a phone download the full file to paint a 315px box.
+ * That is a real cost and this component used to declare the srcset for it.
+ *
+ * But gate 5 copied only the full-size originals into the B2 bucket. Every
+ * derivative 404s on img-lp.rexdalemobilewash.ca — verified for all nine:
+ * -300x220, -768x563 and -1024x751 of Bulk-Water-Services…, Graffiti-Removal
+ * and Storefront-Pressure-Washing. The gate 14 Worker redirect that strips the
+ * -WxH suffix does not help here: it is bound to lp.rexdalemobilewash.ca, and
+ * these URLs are on the image host, which Cloudflare fronts straight to B2.
+ *
+ * A declared srcset candidate that 404s is a broken image at that viewport, so
+ * the full-size src alone is the correct thing to ship until the derivatives
+ * are actually in the bucket. Re-add this once they are.
+ */
 ---
 
 <section class={`svc svc--${tone}`} id={id} data-eid={eid}>
@@ -54,8 +78,10 @@ const {
         {
           bullets.map((b) => (
             <li>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z" />
+              {/* fa-check-circle, as on the live list — a filled disc with a
+                  knocked-out tick, not a bare check mark */}
+              <svg viewBox={icons.checkCircle.vb} aria-hidden="true">
+                <path d={icons.checkCircle.d} />
               </svg>
               <span>{b}</span>
             </li>
@@ -100,14 +126,37 @@ const {
     padding: 10px;
   }
 
+  /* Elementor spaces the widgets in this column a uniform 20px apart; the
+     port used each widget's own bottom margin instead, which came out
+     10/16/20/20 and left every service block short. */
   .svc__copy {
     width: 100%;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    row-gap: 20px;
   }
 
-  /* img width:90% plus the offset frame shadow */
+  .svc__copy > * {
+    width: 100%;
+  }
+
+  .svc__copy > .btn {
+    width: auto;
+  }
+
+  .svc__copy .h-sec,
+  .svc__copy .ticks {
+    margin: 0;
+  }
+
+  /* img width:90%, centred in its column, plus the offset frame shadow.
+     The live image widget is centre-aligned at every width — left-aligning it
+     put the frame hard against the section padding on a phone. */
   .svc__media img {
     width: 90%;
+    margin-inline: auto;
   }
 
   .svc--light .svc__media img {
@@ -118,17 +167,19 @@ const {
     box-shadow: 8px -8px 0 10px var(--c-frame-pale);
   }
 
+  /* 0.9em is the theme's paragraph margin — it sits inside the widget, on top
+     of the 20px the column already puts between widgets. */
   .svc__body {
     font-family: var(--f-body);
     font-size: 16px;
     font-weight: 400;
-    margin: 0 0 1em;
+    margin: 0 0 0.9rem;
   }
 
   .svc__note {
     font-style: italic;
     font-weight: 700;
-    margin: 0 0 1.25em;
+    margin: 0 0 0.9rem;
   }
 
   .svc--light .svc__body,
@@ -189,23 +240,23 @@ const {
     .svc__note {
       text-align: center;
     }
-    /* --order:-99999 on the copy column at mobile */
-    .svc__copy {
+
+    /* Every service block leads with its image at mobile.
+       post-110.css carries `--order:-99999` in its (max-width:767px) block on
+       #5f04353 and #7c20b1e — and both of those are MEDIA columns, not copy
+       columns: #5f04353 is the second child of the graffiti section #d6ce5d3,
+       whose desktop layout is copy-left / image-right, so the hack pulls the
+       image up on a phone. The light sections already have the media first in
+       source order and carry no hack at all.
+       The port had it inverted (`.svc__copy{order:-1}`), which pushed all
+       three photos to the bottom of their block. */
+    .svc__media--last {
       order: -1;
     }
-    /* The heading, body and note all centre at this width, so a left-hugging
-       button is the odd one out — centre it too, as About and thank-you
-       already do. Centring has to be done on the button itself rather than
-       with text-align on .svc__copy: .ticks li is a flex row, and an
-       inherited text-align would re-align the wrapped bullet text.
-       Margins are collapsed against .ticks/.svc__note's 1.25em below, so the
-       gap above lands at 1.75em; the 1.5em below clears the photo that
-       follows, since .svc__copy leads at this width via order:-1. */
-    .svc__copy .btn {
-      display: block;
-      width: fit-content;
-      margin-block: 1.75em 1.5em;
-      margin-inline: auto;
+
+    /* The button widget is centre-aligned at <=767 and left-aligned above it */
+    .svc__copy {
+      align-items: center;
     }
   }
 </style>

@@ -16,6 +16,8 @@
  * Answer bodies (#7a398e87 #4344b61 #3d9fb60 #6f2b97b #db58256):
  *   Montserrat 400 #000, 14px at <=767.
  */
+import { icons } from '../icons';
+
 const faqs = [
   {
     q: 'What areas do you serve?',
@@ -50,8 +52,17 @@ const faqs = [
         faqs.map((f, i) => (
           <details class="faq__item" open={i === 0}>
             <summary>
+              {/* fa-minus when open, fa-plus when closed, and it sits BEFORE
+                  the question — the live accordion has no chevron. */}
+              <span class="faq__icon" aria-hidden="true">
+                <svg class="faq__icon-open" viewBox={icons.minus.vb} fill="currentColor">
+                  <path d={icons.minus.d} />
+                </svg>
+                <svg class="faq__icon-closed" viewBox={icons.plus.vb} fill="currentColor">
+                  <path d={icons.plus.d} />
+                </svg>
+              </span>
               <span class="faq__q">{f.q}</span>
-              <span class="faq__icon" aria-hidden="true" />
             </summary>
             <div class="faq__panel">
               <p>{f.a}</p>
@@ -70,6 +81,8 @@ const faqs = [
 
   .faq__title {
     text-align: center;
+    /* the 20px below is .faq__list's margin — the heading adds none */
+    margin: 0;
   }
 
   .faq__list {
@@ -80,24 +93,17 @@ const faqs = [
     gap: 0;
   }
 
-  .faq__item {
-    border: 1px solid var(--c-blue);
-    border-bottom-width: 0;
-  }
-
-  .faq__item:last-child {
-    border-bottom-width: 1px;
-  }
-
+  /* The border belongs to the item title, not to the <details> wrapper, and
+     the title is padded a flat 10px — not 14px/18px. */
   summary {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    gap: 10px;
     cursor: pointer;
     list-style: none;
     background-color: var(--c-blue-pale);
-    padding: 14px 18px;
+    border: 1px solid var(--c-blue);
+    padding: 10px;
   }
 
   summary::-webkit-details-marker {
@@ -123,36 +129,45 @@ const faqs = [
     color: var(--c-blue);
   }
 
+  /* --n-accordion-icon-size:15px, --n-accordion-icon-normal-color:#164E83 */
   .faq__icon {
     flex: 0 0 auto;
-    width: 15px;
+    display: inline-flex;
+    align-items: center;
     height: 15px;
-    border-right: 2px solid var(--c-blue);
-    border-bottom: 2px solid var(--c-blue);
-    transform: rotate(45deg) translate(-2px, -2px);
-    transition: transform 0.3s, border-color 0.3s;
+    color: var(--c-blue);
+    transition: color 0.3s;
   }
 
-  summary:hover .faq__icon,
-  .faq__item[open] .faq__icon {
-    border-color: #002b5b;
+  .faq__icon svg {
+    height: 15px;
+    width: auto;
   }
 
-  .faq__item[open] .faq__icon {
-    transform: rotate(-135deg) translate(-2px, -2px);
+  .faq__item[open] .faq__icon-closed,
+  .faq__item:not([open]) .faq__icon-open {
+    display: none;
   }
 
-  /* --n-accordion-item-title-distance-from-content:0px, panel bg #D4E4ED */
+  summary:hover .faq__icon {
+    color: #002b5b;
+  }
+
+  /* --n-accordion-item-title-distance-from-content:0px, panel bg #D4E4ED,
+     a flat 10px of padding and a hairline #d5d8dc border. The -1px overlaps
+     the panel's border onto its own title's, so the two read as one rule. */
   .faq__panel {
     background-color: var(--c-blue-pale);
-    padding: 0 18px 16px;
+    border: 1px solid #d5d8dc;
+    padding: 10px;
+    margin-top: -1px;
   }
 
   .faq__panel p {
     font-family: var(--f-body);
     font-weight: 400;
     color: #000;
-    margin: 0;
+    margin: 0 0 0.9rem;
   }
 
   @media (max-width: 767px) {
