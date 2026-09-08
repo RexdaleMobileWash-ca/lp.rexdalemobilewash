@@ -30,7 +30,37 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 // Caps are generous for a real enquiry and small enough that a payload can not
 // be used to blow out the Resend request.
-const LIMITS = { name: 120, email: 200, phone: 60, city: 120, message: 4000 };
+//
+// `organization`, `property_type` and `source` are optional and come from the
+// /pressure-washing/ commercial forms; the Elementor-replica forms send neither.
+// Everything here is stripped of control characters by clean(), which is what
+// keeps a value safe to interpolate into the subject header.
+const LIMITS = {
+  name: 120,
+  email: 200,
+  phone: 60,
+  city: 120,
+  organization: 160,
+  property_type: 80,
+  source: 60,
+  message: 4000,
+};
+
+/**
+ * Honeypot field names. Real people never see these, so anything that arrives
+ * filled in is a bot.
+ *
+ * There are two because the two form families were built at different times and
+ * name their trap differently — the Elementor-replica forms
+ * (`EstimateForm.astro`) use `company`, the commercial LP forms use `botcheck`.
+ *
+ * `company` being a trap is the reason the commercial forms send their real
+ * company name as `organization`. Wiring their visible, REQUIRED "Company *"
+ * field to `company` would have made every genuine commercial lead look like a
+ * bot: 202, no email, no error anywhere, and nobody the wiser until someone
+ * asked why the quote requests stopped.
+ */
+const HONEYPOTS = ['company', 'botcheck'];
 
 // Deliberately loose. Address validity is proven by mail being answered, not
 // by a regex, and an over-strict pattern silently drops real enquiries.
@@ -118,9 +148,12 @@ function notificationEmail(env, v, meta) {
     <div style="padding:20px 22px">
       <table style="border-collapse:collapse;width:100%">
         ${row('Name', esc(v.name))}
+        ${row('Company', esc(v.organization))}
         ${row('Email', `<a href="mailto:${esc(v.email)}" style="color:#164E83">${esc(v.email)}</a>`)}
         ${row('Phone', `<a href="tel:${esc(v.phone.replace(/[^0-9+]/g, ''))}" style="color:#164E83">${esc(v.phone)}</a>`)}
         ${row('City', esc(v.city))}
+        ${row('Property type', esc(v.property_type))}
+        ${row('Form', esc(v.source))}
       </table>
       ${
         v.message
@@ -141,9 +174,12 @@ function notificationEmail(env, v, meta) {
     `New estimate request — ${env.SITE_NAME || 'Rexdale Mobile Wash'}`,
     '',
     `Name:  ${v.name}`,
+    v.organization ? `Company: ${v.organization}` : null,
     `Email: ${v.email}`,
     `Phone: ${v.phone}`,
     v.city ? `City:  ${v.city}` : null,
+    v.property_type ? `Property type: ${v.property_type}` : null,
+    v.source ? `Form:  ${v.source}` : null,
     '',
     v.message ? `Message:\n${v.message}` : null,
   ]
@@ -155,11 +191,25 @@ function notificationEmail(env, v, meta) {
     to: [env.CONTACT_TO],
     ...(env.CONTACT_CC ? { cc: [env.CONTACT_CC] } : {}),
     reply_to: [env.CONTACT_REPLY_TO],
-    subject: `New estimate request — ${v.name}${v.city ? ` (${v.city})` : ''}`,
+    // `source` is in the subject so commercial-LP quote requests are separable
+    // from the main landing page's enquiries in the inbox, without opening
+    // either one. Control characters are already stripped by clean(), which is
+    // what stops a crafted value breaking out into a second header.
+    subject: `New estimate request — ${v.name}${v.city ? ` (${v.city})` : ''}${
+      v.source ? ` [${v.source}]` : ''
+    }`,
     html,
     text,
   };
 }
+
+/**
+ * What to echo back when the enquirer left the message box empty. The
+ * commercial forms make property type required and the message optional, so for
+ * those it is the most useful thing they actually told us.
+ */
+const summary = (v) =>
+  [v.phone, v.property_type, v.city].filter(Boolean).join(' · ');
 
 function confirmationEmail(env, v) {
   const site = env.SITE_NAME || 'Rexdale Mobile Wash';
@@ -173,7 +223,7 @@ function confirmationEmail(env, v) {
     </p>
     <p style="margin:0 0 6px;color:#5b6b7a;font:13px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">What you sent us</p>
     <div style="white-space:pre-wrap;color:#111;font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;background:#f4f7f9;border-radius:4px;padding:12px 14px">${esc(
-      v.message || `${v.phone}${v.city ? ` · ${v.city}` : ''}`,
+      v.message || summary(v),
     )}</div>
     <p style="margin:20px 0 0;padding-top:14px;border-top:1px solid #e6edf2;color:#8a97a3;font:12px/1.5 -apple-system,Segoe UI,Roboto,sans-serif">
       ${esc(site)} · this is an automatic confirmation, but replies reach a real person.
@@ -187,7 +237,7 @@ Thanks for getting in touch with ${site}. We have your request and one of our
 team will get back to you shortly. If it is urgent, call (416) 244-6497.
 
 What you sent us:
-${v.message || `${v.phone}${v.city ? ` · ${v.city}` : ''}`}
+${v.message || summary(v)}
 
 — ${site}`;
 
@@ -238,9 +288,9 @@ export async function handleContact(request, env, ctx) {
     return json(415, { ok: false, error: 'Send JSON or a urlencoded form body.' });
   }
 
-  // Honeypot. Real people never see this field, so anything in it is a bot.
-  // Answer 202 rather than an error: a bot told it failed simply retries.
-  if (String(body.company ?? '').trim()) {
+  // Honeypot. Answer 202 rather than an error: a bot told it failed simply
+  // retries. See HONEYPOTS for why there are two names.
+  if (HONEYPOTS.some((field) => String(body[field] ?? '').trim())) {
     return wantsJson
       ? json(202, { ok: true })
       : Response.redirect(new URL('/thank-you', request.url).toString(), 303);

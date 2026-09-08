@@ -1,0 +1,47 @@
+path	expect	first	final	destination	verdict
+/	200	200	200		OK
+/privacy-policy/	200	200	200		OK
+/thank-you/	200	200	200		OK
+/pressure-washing/	200	200	200		OK
+/pressurewashing/	301	301	200	https://lp.rexdalemobilewash.ca/pressure-washing/	OK
+/pressurewashing	301	301	200	https://lp.rexdalemobilewash.ca/pressure-washing/	OK
+/author/ashbrandingcentres-com/	301	301	200	https://lp.rexdalemobilewash.ca/	OK
+/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash-1024x751.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash.webp	OK
+/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash-300x220.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash.webp	OK
+/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash-768x563.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash.webp	OK
+/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Bulk-Water-Services-Rexdale-Mobile-Wash.webp	OK
+/wp-content/uploads/2025/03/Car-Wraps-CA-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Car-Wraps-CA-Logo.webp	OK
+/wp-content/uploads/2025/03/De-Icing-Photo-300x171.jpg	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/De-Icing-Photo.jpg	OK
+/wp-content/uploads/2025/03/De-Icing-Photo.jpg	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/De-Icing-Photo.jpg	OK
+/wp-content/uploads/2025/03/Graffiti-Removal-1024x751.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Graffiti-Removal.webp	OK
+/wp-content/uploads/2025/03/Graffiti-Removal-300x220.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Graffiti-Removal.webp	OK
+/wp-content/uploads/2025/03/Graffiti-Removal-768x563.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Graffiti-Removal.webp	OK
+/wp-content/uploads/2025/03/Graffiti-Removal.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Graffiti-Removal.webp	OK
+/wp-content/uploads/2025/03/ISN-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/ISN-Logo.webp	OK
+/wp-content/uploads/2025/03/Loblaws-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Loblaws-Logo.webp	OK
+/wp-content/uploads/2025/03/Pepsico-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Pepsico-Logo.webp	OK
+/wp-content/uploads/2025/03/Pizza-Pizza-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Pizza-Pizza-Logo.webp	OK
+/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo-150x150.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo.webp	OK
+/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo-300x300.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo.webp	OK
+/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Logo.webp	OK
+/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Share-Image.jpg	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Rexdale-Mobile-Wash-Share-Image.jpg	OK
+/wp-content/uploads/2025/03/Sofina-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Sofina-Logo.webp	OK
+/wp-content/uploads/2025/03/Storefront-Pressure-Washing-1024x751.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Storefront-Pressure-Washing.webp	OK
+/wp-content/uploads/2025/03/Storefront-Pressure-Washing-300x220.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Storefront-Pressure-Washing.webp	OK
+/wp-content/uploads/2025/03/Storefront-Pressure-Washing-768x563.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Storefront-Pressure-Washing.webp	OK
+/wp-content/uploads/2025/03/Storefront-Pressure-Washing.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Storefront-Pressure-Washing.webp	OK
+/wp-content/uploads/2025/03/Toronto-Transportation-Club-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Toronto-Transportation-Club-Logo.webp	OK
+/wp-content/uploads/2025/03/Toronto-Trucking-Association-Logo.webp	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/Toronto-Trucking-Association-Logo.webp	OK
+/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-180x180.png	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon.png	OK
+/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-192x192.png	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon.png	OK
+/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-270x270.png	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon.png	OK
+/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon-32x32.png	301	301	200	https://img-lp.rexdalemobilewash.ca/wp-content/uploads/2025/03/cropped-Rexdale-Mobile-Wash-Favicon.png	OK
+/feed/	404	404	404		OK-GONE
+/comments/feed/	404	404	404		OK-GONE
+/wp-json/	404	404	404		OK-GONE
+/wp-json/wp/v2/pages/11	404	404	404		OK-GONE
+/xmlrpc.php	404	404	404		OK-GONE
+/wp-admin/admin-ajax.php	404	404	404		OK-GONE
+/wp-content/plugins/elementor/assets/js/frontend.min.js	404	404	404		OK-GONE
+/wp-content/themes/hello-elementor/assets/css/theme.css	404	404	404		OK-GONE
+/wp-includes/js/jquery/jquery.min.js	404	404	404		OK-GONE

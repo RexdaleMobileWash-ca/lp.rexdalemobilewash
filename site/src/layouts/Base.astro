@@ -9,11 +9,14 @@
  * Elementor element ids are kept in comments beside each ported block.
  */
 import { upload } from '../lib/img';
+import Analytics from '../components/Analytics.astro';
 
 interface Props {
   title?: string;
   description?: string;
   canonical?: string;
+  /** Passed straight to Analytics — see that component. Only /thank-you/ sets it. */
+  conversion?: string;
 }
 
 const TITLE = 'Fast & Affordable Mobile Wash Services in Toronto';
@@ -31,6 +34,7 @@ const {
   title = TITLE,
   description = DESC,
   canonical = 'https://lp.rexdalemobilewash.ca' + Astro.url.pathname,
+  conversion,
 } = Astro.props;
 ---
 
@@ -54,6 +58,8 @@ const {
       })(window, document, 'script', 'dataLayer', 'GTM-NMTLRJ63');
     </script>
     <!-- End Google Tag Manager -->
+
+    <Analytics conversion={conversion} />
 
     <title>{title}</title>
     <meta name="description" content={description} />
