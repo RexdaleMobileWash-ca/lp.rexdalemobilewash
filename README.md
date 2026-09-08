@@ -196,70 +196,91 @@ Cloudflare is authoritative. That is what made `img-lp.rexdalemobilewash.ca`
 possible, and what makes the cutover below a Cloudflare-side operation rather
 than a registrar one.
 
-## Going live
+## Going live — done 2026-09-08
 
-`lp.rexdalemobilewash.ca` still serves the old WordPress site. Repointing it is
-gate 13 of `wp-migration` (`wp-17-point-domain-at-new-site`) and **has not been
-done**. What follows is the prepared procedure, not a record of one.
+`lp.rexdalemobilewash.ca` serves this build. Gate 13 of `wp-migration`
+(`wp-17-point-domain-at-new-site`) is complete.
 
-### The rollback record — save this before anything else
+### The rollback record — keep this
 
-The DNS record that currently answers for the hostname, read from the Cloudflare
-zone `rexdalemobilewash.ca` (`a4310a1bbb3a53ad3206c1809e6d61b1`) on 2026-09-08:
+The record that answered for the hostname before the cutover, read from the
+Cloudflare zone `rexdalemobilewash.ca` (`a4310a1bbb3a53ad3206c1809e6d61b1`):
 
 ```
 A   lp.rexdalemobilewash.ca   185.206.163.79   proxied, TTL auto (1)
 ```
 
-That value **is the rollback**, and it is the one thing here that cannot be
-re-derived: a Custom Domain cannot be created over an existing record, so the
-record must be deleted first, and Cloudflare does not keep what it deleted.
+**This is still the rollback and it is written down here because it cannot be
+re-derived.** A Custom Domain cannot be created over an existing record, so that
+record was deleted to make room, and Cloudflare does not keep what it deletes.
 
-### The order
+**To roll back:** delete the Custom Domain, then re-create `A 185.206.163.79`,
+proxied. The old WordPress site is still running and still answering on that
+address — it is not switched off until gate 16 (`wp-20-switch-off-old-site`),
+which is the whole reason the order was arranged this way.
 
-1. Re-read the record above and confirm it still matches. If it has changed,
-   the new value is the rollback.
-2. ~~Deploy production and give it its secret.~~ **Done 2026-09-08** — deliberately
-   ahead of any DNS change, so the Worker is ready to serve the instant the
-   hostname points at it. Redeploy the current build before cutting over:
-   ```bash
-   cd site
-   npm run build
-   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npm run deploy
-   CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret list --env ""   # RESEND_API_KEY
-   ```
-3. Delete the `A` record for `lp.rexdalemobilewash.ca`.
-4. Add `lp.rexdalemobilewash.ca` as a **Custom Domain** on
-   `lp-rexdalemobilewash` — Worker → Settings → Domains & Routes. Not a Route:
-   on a Custom Domain the Worker *is* the origin, and Cloudflare writes the DNS
-   record and issues the certificate itself.
-5. Wait for the certificate to go active before announcing anything.
+### What was done
 
-Steps 3 and 4 are seconds apart and the hostname resolves to nothing between
-them. Do them deliberately, and not on a Friday.
+1. Production Worker redeployed from a clean build at `3d45a85`, secret
+   confirmed present, **before** any DNS change — so the Worker was ready to
+   serve the instant the hostname pointed at it.
+2. The `A` record was deleted and the Custom Domain created immediately after.
+   Two seconds apart; the hostname resolved to nothing in between. Cloudflare
+   then wrote its own `AAAA lp.rexdalemobilewash.ca -> 100::` proxied, which is
+   the normal Custom Domain placeholder, and issued the certificate.
 
-The cutover is deliberately **not** declared as a `routes` entry in
-`wrangler.jsonc`: that would put the irreversible step behind an ordinary
-`npm run deploy`, run by anyone, with no chance to save the rollback first.
+A Custom Domain, not a Route: the Worker *is* the origin, so Cloudflare owns
+both the DNS record and the certificate. The API needs `PUT` on
+`/accounts/{id}/workers/domains` — `POST` returns `10405 Method not allowed for
+this authentication scheme`, and `override_existing_dns_record` is not honoured,
+so the delete-first order is forced rather than chosen. The dashboard equivalent
+is Worker → Settings → Domains & Routes.
 
-**Rollback:** delete the Custom Domain, re-create `A 185.206.163.79` proxied.
-The old WordPress site keeps running throughout — it is not switched off until
-gate 16 (`wp-20-switch-off-old-site`), and that is the whole reason the order is
-arranged this way. Never touch the `MX` or apex `TXT` records while doing this.
+It is still deliberately **not** a `routes` entry in `wrangler.jsonc` — that
+would put an irreversible step behind an ordinary `npm run deploy`.
 
-### Not clear for cutover yet
+`MX` and the apex `TXT` records were read before and after and are byte-identical.
+Zone SSL mode is still `full` (AD-2).
 
-Analytics parity is done (see *Analytics* below). These are not:
+### Verified live after the cutover
+
+```
+https status .............. 200, valid certificate (curl ssl_verify_result 0)
+serving ................... the Astro build (_astro bundles; WordPress gone)
+X-Robots-Tag .............. absent on all four pages   <- production is indexable
+routes .................... / /pressure-washing/ /privacy-policy/ /thank-you/ 200
+                            /pressurewashing/ 301, unknown path 404
+assets .................... 51 referenced across the four pages, all 200
+images .................... 23 references, all on img-lp.rexdalemobilewash.ca
+analytics ................. Ads + call conversion + Clarity on every page,
+                            form conversion on /thank-you/ only
+contact form .............. POST /api/contact -> 202 {"ok":true,"id":…}
+                            honeypot 202 without sending, cross-origin 403
+client MX + TXT ........... unchanged
+ssl mode .................. full
+staging ................... unaffected, still noindex
+old origin ................ 185.206.163.79 still 200 — rollback intact
+```
+
+Browser-level rendering could not be checked from the build environment — its
+egress proxy resets browser connections. The asset sweep above stands in for it:
+every stylesheet, script, font and image the four pages reference was fetched
+and returned 200.
+
+### Still open after the cutover
+
+Analytics parity is done (see *Analytics* below). These are not, and are now
+open on a **live** site:
 
 - **Privacy policy is placeholder text.** See *Open items*.
 - **`/pressure-washing/` quote forms are dead** — no Web3Forms key, so phone is
   that page's only conversion path.
 - **Gates 14 and 15 have not run** — `wp-18-keep-old-links-working` (edge
   redirects) and `wp-19-check-nothing-is-broken` (the live sweep). The old page
-  links nowhere but `/`, `/feed/`, `/comments/feed/` and `wp-json`, so the
+  linked nowhere but `/`, `/feed/`, `/comments/feed/` and `wp-json`, so the
   redirect surface is small, but small is not none.
 - The gate record `sites/lp.rexdalemobilewash.ca.md` lives in the command repo,
-  not this one, so gate 12's status cannot be confirmed from here.
+  not this one, so gate 12's status was never confirmable from here.
 
 ## Analytics
 

@@ -79,14 +79,18 @@ until a real visitor submits.
 - Staging: `https://staging-lp-rexdalemobilewash.ash-47a.workers.dev` **and**
   `https://staging.lp.rexdalemobilewash.ca` (Worker
   `staging-lp-rexdalemobilewash`, `NOINDEX=true`)
-- Production: Worker `lp-rexdalemobilewash` — deployed, secret set, **no
-  hostname**. `workers_dev: false` and no Custom Domain, so nothing can reach
-  it; `wrangler deploy` reporting `No targets deployed` is correct, not a
-  failure. Attaching the domain is the whole of the remaining cutover.
-- Public: `https://lp.rexdalemobilewash.ca` — still the **old WordPress /
-  Elementor site**. The Astro build is not public yet.
+- Production: `https://lp.rexdalemobilewash.ca` — Worker `lp-rexdalemobilewash`,
+  attached as a Custom Domain **2026-09-08**. This is the real site now.
 
-A change deployed to staging reaches no real visitors.
+A change deployed to staging reaches no real visitors. **A change deployed to
+production does.** There is no CI and no review gate between `npm run deploy`
+and the public, so build, deploy to staging, look at it, then deploy production.
+
+**Rollback**, if the new site ever has to come down: delete the Custom Domain
+and re-create `A lp.rexdalemobilewash.ca -> 185.206.163.79`, proxied. The old
+WordPress site is still running at that address until gate 16
+(`wp-20-switch-off-old-site`). That value is not recoverable from Cloudflare —
+it is written down in README under *Going live* and nowhere else.
 
 **The staging custom domain does exist**, contrary to older notes here and in
 the README that said it was removed. `staging.lp.rexdalemobilewash.ca` is
