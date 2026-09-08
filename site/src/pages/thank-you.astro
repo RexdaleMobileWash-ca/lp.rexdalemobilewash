@@ -2,19 +2,11 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-
-/**
- * The Google Ads form-submission conversion, as fired by the live WordPress
- * /thank-you/ page. This route is only reachable after worker/contact.js has
- * accepted a submission (303), so a page load here is a real lead.
- */
-const FORM_CONVERSION = 'AW-16946176869/cnvWCPKRo64aEOXGyJA_';
 ---
 
 <Base
   title="Thank You - Rexdale Mobile Wash"
   description="We have received your inquiry. One of our experts will get in touch with you as soon as possible."
-  conversion={FORM_CONVERSION}
 >
   <Header />
 

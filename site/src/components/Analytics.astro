@@ -1,83 +1,39 @@
 ---
 /**
- * Google Ads + Microsoft Clarity — ported verbatim from the live WordPress page.
+ * Microsoft Clarity.
  *
- * WHY THIS IS HARDCODED RATHER THAN CONFIGURED IN GTM
+ * WHAT USED TO BE HERE, AND WHY IT ISN'T
  *
- * lp.rexdalemobilewash.ca carries paid Google Ads traffic. The live Elementor
- * theme fires these tags from hardcoded snippets, not through a container, so
- * the moment the domain is repointed at this build anything not carried across
- * stops counting. Conversion history is not backfillable. These four snippets
- * are therefore reproduced character-for-character from the live page rather
- * than reimplemented, so that the cutover is invisible in the Ads account.
+ * This component also carried the Google Ads tag hardcoded — the gtag.js
+ * loader for AW-16946176869, its config call, the call conversion
+ * (jqC8COOXo64aEOXGyJA_) with the (416) 244-6497 number swap, and the form
+ * conversion (cnvWCPKRo64aEOXGyJA_) fired on /thank-you/. They were ported
+ * verbatim from the live WordPress page so the cutover would be invisible in
+ * the Ads account.
  *
- * Captured from https://lp.rexdalemobilewash.ca/ and /thank-you/ on 2026-09-08.
+ * The build also loads GTM container GTM-NMTLRJ63 (see Base.astro, and
+ * pressure-washing.astro which carries its own copy). Ads tagging has to live
+ * in exactly one of those two places: with the snippet here AND a container
+ * tag firing the same conversion, every conversion counts twice and the Ads
+ * account optimises against inflated numbers. It is now the container's job,
+ * so the snippet is gone.
  *
- * ---------------------------------------------------------------------------
- * DOUBLE-COUNTING: the one way this goes wrong
+ * What GTM-NMTLRJ63 must therefore cover, since nothing on the page does it
+ * any more:
+ *   - the Google Ads tag for AW-16946176869 on every page
+ *   - the call conversion, including the (416) 244-6497 number swap
+ *   - the form conversion, on the /thank-you/ page view
  *
- * This build also loads GTM container GTM-NMTLRJ63 (see Base.astro). If that
- * container is ever configured to fire conversions for AW-16946176869 while
- * these snippets are also present, every conversion counts TWICE and the Ads
- * account optimises against inflated numbers.
+ * /thank-you/ is reachable only after worker/contact.js has accepted a
+ * submission, so a page view there is a real lead — a URL trigger on that path
+ * reproduces the old on-load semantics exactly, and abandoned or failed
+ * submissions still never count.
  *
- * Pick one place. Today it is here. If the conversions move into GTM, delete
- * this component in the same change — not afterwards.
- * ---------------------------------------------------------------------------
- *
- * Clarity has no equivalent hazard: a second copy of the same project id is
- * de-duplicated by the tag itself.
+ * Clarity stays hardcoded: it is not an Ads tag, has no double-counting
+ * hazard (a second copy of the same project id is de-duplicated by the tag
+ * itself), and nothing about it depends on the container.
  */
-
-interface Props {
-  /**
-   * A full `AW-…/label` send_to value. When set, a conversion event fires on
-   * page load. Only /thank-you/ passes one — it is the form-submission
-   * conversion, and the page is reachable only after the Worker's 303.
-   */
-  conversion?: string;
-}
-
-const { conversion } = Astro.props;
 ---
-
-<!-- Google Ads: gtag.js (AW-16946176869) -->
-<script
-  is:inline
-  async
-  src="https://www.googletagmanager.com/gtag/js?id=AW-16946176869"></script>
-<script is:inline>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-  gtag('js', new Date());
-
-  gtag('config', 'AW-16946176869');
-</script>
-
-<!--
-  Call conversion + number swap. The swap target is the number this site
-  already displays, so the visible page is unchanged whether or not Ads
-  substitutes a forwarding number.
--->
-<script is:inline>
-  gtag('config', 'AW-16946176869/jqC8COOXo64aEOXGyJA_', {
-    phone_conversion_number: '(416) 244-6497',
-  });
-</script>
-
-{
-  /* Form conversion. Fires on load, not on submit — the page is only reached
-     after the Worker has accepted the submission, so a load here is a real
-     lead, and abandoned or failed submissions never get counted. */
-  conversion && (
-    <script
-      is:inline
-      set:html={`gtag('event', 'conversion', {'send_to': '${conversion}'});`}
-    />
-  )
-}
 
 <!-- Microsoft Clarity (qsc0wq5qpr) -->
 <script is:inline>

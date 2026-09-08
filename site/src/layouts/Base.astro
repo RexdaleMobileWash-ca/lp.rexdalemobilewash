@@ -15,8 +15,6 @@ interface Props {
   title?: string;
   description?: string;
   canonical?: string;
-  /** Passed straight to Analytics — see that component. Only /thank-you/ sets it. */
-  conversion?: string;
 }
 
 const TITLE = 'Fast & Affordable Mobile Wash Services in Toronto';
@@ -34,7 +32,6 @@ const {
   title = TITLE,
   description = DESC,
   canonical = 'https://lp.rexdalemobilewash.ca' + Astro.url.pathname,
-  conversion,
 } = Astro.props;
 ---
 
@@ -59,7 +56,7 @@ const {
     </script>
     <!-- End Google Tag Manager -->
 
-    <Analytics conversion={conversion} />
+    <Analytics />
 
     <title>{title}</title>
     <meta name="description" content={description} />

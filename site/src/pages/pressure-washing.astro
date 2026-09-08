@@ -171,9 +171,14 @@ const FAQ_LD = {
     <!-- End Google Tag Manager -->
 
     <!--
-      Same Ads + Clarity tags as the rest of the build. No `conversion` prop:
-      this page's own lead event is `generate_lead`, pushed to the dataLayer by
-      the script at the end of the body only after /api/contact confirms a send.
+      Clarity, same as the rest of the build. The Ads tag is no longer here or
+      anywhere else on the page — it belongs to GTM-NMTLRJ63 above, so that a
+      conversion is counted in one place rather than two. See Analytics.astro.
+
+      This page's lead event is `generate_lead`, pushed to the dataLayer by the
+      script at the end of the body only after /api/contact confirms a send —
+      that push is unaffected, and is the trigger the container should hang this
+      page's conversion on.
     -->
     <Analytics />
 

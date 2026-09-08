@@ -130,31 +130,37 @@ The hostname is `img-lp`, not `img.lp.…`, because `img.rexdalemobilewash.ca` i
 already the main site's bucket and the free Universal SSL certificate does not
 cover a second label below the apex.
 
-## Analytics — the Astro build now carries the same tags as WordPress
+## Analytics — Ads tagging lives in GTM, not in the page
 
-The public WordPress page fires these from hardcoded theme snippets, not from a
-tag manager. All four are now reproduced verbatim in
-`site/src/components/Analytics.astro`, so a cutover is invisible in the Ads
-account:
+Google Ads is fired by container `GTM-NMTLRJ63` only. There is no hardcoded
+gtag.js on any page, and `Analytics.astro` is Microsoft Clarity (`qsc0wq5qpr`)
+and nothing else. There is no GA4 (no `G-` measurement ID anywhere).
 
-- Google Ads gtag.js `AW-16946176869` (all pages)
-- Call conversion `AW-16946176869/jqC8COOXo64aEOXGyJA_`, number swap to
+The old WordPress theme fired Ads from hardcoded snippets, and the Astro build
+reproduced them verbatim through the cutover so the Ads account would not see a
+gap. That snippet has now been removed in favour of the container, so **the
+container is the only thing counting conversions**. It must cover:
+
+- the Google Ads tag for `AW-16946176869`, all pages
+- call conversion `AW-16946176869/jqC8COOXo64aEOXGyJA_`, number swap to
   (416) 244-6497
-- Form conversion `AW-16946176869/cnvWCPKRo64aEOXGyJA_` on `/thank-you/`
-- Microsoft Clarity `qsc0wq5qpr`
-- No GA4 (no `G-` measurement ID anywhere)
+- form conversion `AW-16946176869/cnvWCPKRo64aEOXGyJA_` — on the `/thank-you/`
+  page view for the main site's forms, and on the `generate_lead` dataLayer
+  push for `/pressure-washing/`
 
-`Analytics.astro` is pulled in by `Base.astro` (which covers `/`,
+`/thank-you/` is reachable only after `worker/contact.js` accepts a submission,
+so a page view there is a real lead — a URL trigger on that path is equivalent
+to the on-load snippet it replaced, and abandoned or failed submissions still
+never count.
+
+**Do not re-add a hardcoded Ads tag while the container fires one.** That is the
+double-count: every conversion lands twice and the Ads account optimises against
+inflated numbers. Pick one place — today it is the container.
+
+`Analytics.astro` is pulled in by `Base.astro` (covering `/`,
 `/privacy-policy/`, `/thank-you/`) and separately by `pressure-washing.astro`,
-which has its own head and does not use `Base`. Only `/thank-you/` passes a
-`conversion` prop.
-
-**The double-count hazard is now real, not hypothetical.** GTM container
-`GTM-NMTLRJ63` is also installed in the Astro build. If that container is ever
-configured to fire Ads conversions for `AW-16946176869`, every conversion counts
-twice and the Ads account optimises against inflated numbers. Pick one place —
-today it is `Analytics.astro`. If the conversions move into GTM, delete that
-component **in the same change**, not afterwards.
+which has its own head and does not use `Base`. Both also load `GTM-NMTLRJ63`
+independently.
 
 ## Build note
 
