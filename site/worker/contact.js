@@ -186,10 +186,14 @@ function notificationEmail(env, v, meta) {
     .filter((line) => line !== null)
     .join('\n');
 
+  // No Cc. Notifications go to the client and nowhere else — TBOX Studio is not
+  // copied on enquiries. This was `cc: [env.CONTACT_CC]` and was removed on
+  // request; do not reinstate it without being asked, and note that removing the
+  // var alone is not enough, because a var can be set on the Worker outside this
+  // repo.
   return {
     from: env.CONTACT_FROM,
     to: [env.CONTACT_TO],
-    ...(env.CONTACT_CC ? { cc: [env.CONTACT_CC] } : {}),
     reply_to: [env.CONTACT_REPLY_TO],
     // `source` is in the subject so commercial-LP quote requests are separable
     // from the main landing page's enquiries in the inbox, without opening

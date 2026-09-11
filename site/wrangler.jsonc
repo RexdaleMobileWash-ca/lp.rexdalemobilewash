@@ -65,13 +65,16 @@
   // never a sending domain here: that is what keeps the client's Microsoft 365
   // mail reputation entirely out of reach of this Worker.
   //
+  // There is no CONTACT_CC. Form notifications go to CONTACT_TO only — nobody at
+  // TBOX Studio is copied. The Cc was removed from worker/contact.js too, so
+  // re-adding the var here would do nothing on its own.
+  //
   // NOINDEX is read by worker/index.js. "false" here is the whole point of the
   // split — see the header comment in that file.
   "vars": {
     "SITE_NAME": "Rexdale Mobile Wash",
     "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
     "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
-    "CONTACT_CC": "Paolo@tboxstudio.com",
     "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
     "CONTACT_CONFIRM": "true",
     "NOINDEX": "false"
@@ -126,7 +129,6 @@
         "SITE_NAME": "Rexdale Mobile Wash",
         "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
         "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
-        "CONTACT_CC": "Paolo@tboxstudio.com",
         "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
         "CONTACT_CONFIRM": "true",
         "NOINDEX": "true"

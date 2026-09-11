@@ -561,8 +561,13 @@ have replaced.
 |---|---|
 | From | `forms@brandingcentres.com` — the **shared** sending domain |
 | To | `dispatch@rexdalemobilewash.ca` |
-| Cc | `Paolo@tboxstudio.com` |
+| Cc | *none* |
 | Reply-To | `dispatch@rexdalemobilewash.ca` |
+
+There is **no Cc on form notifications**. They used to copy
+`Paolo@tboxstudio.com`; that was removed on request, from both the payload in
+`worker/contact.js` and the `CONTACT_CC` var in `wrangler.jsonc`, so setting the
+var again would not bring it back on its own.
 
 `rexdalemobilewash.ca` is **never** used as a sending domain. That is the whole
 point: no SPF, DKIM or DMARC record of the client's is involved, so nothing this
