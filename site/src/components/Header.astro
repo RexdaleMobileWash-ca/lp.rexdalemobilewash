@@ -35,13 +35,16 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
   /* Band height is driven entirely by these two values, so it is the same
      number every time and can be read off without measuring:
          band = --hdr-logo + 2 x --hdr-pad-y
-     Desktop 44 + 12 = 56px resting, 34 + 10 = 44px scrolled. Mobile is
-     38 + 12 = 50px resting and shares the 44px scrolled size.
+     Desktop 52 + 12 = 64px resting, 38 + 10 = 48px scrolled.
+     Mobile 44 + 12 = 56px resting, 36 + 10 = 46px scrolled.
+     These sit between the 142px original and the 56/44 that read as too
+     small: enough presence at rest to look like a header, still a clear
+     16px drop once the page moves.
      The floor is the CTA button, trimmed to 40px below — a band cannot go
      under it without taking the phone tap target below 40px, which is the
      one element on this header that has to stay easy to hit. */
   .hdr {
-    --hdr-logo: 44px;
+    --hdr-logo: 52px;
     --hdr-pad-y: 6px;
 
     background-color: #fff;
@@ -53,7 +56,7 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
 
   /* Set by the script below once the page is scrolled off the top. */
   .hdr.is-stuck {
-    --hdr-logo: 34px;
+    --hdr-logo: 38px;
     --hdr-pad-y: 5px;
     box-shadow: 0 2px 12px 0 rgb(0 0 0 / 35%);
   }
@@ -129,11 +132,12 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
     .hdr__cta {
       width: 50%;
     }
-    /* Was an 87px band, now 38 + 12 = 50px resting. The scrolled size is not
-       overridden: 44px is already at the button floor, so mobile and desktop
-       land on the same number once the page moves. */
+    /* Was an 87px band, now 56px resting and 46px scrolled. */
     .hdr {
-      --hdr-logo: 38px;
+      --hdr-logo: 44px;
+    }
+    .hdr.is-stuck {
+      --hdr-logo: 36px;
     }
   }
 
