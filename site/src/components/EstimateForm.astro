@@ -140,17 +140,23 @@ const ACTION = 'estimate_form';
     It costs both forms about 30px of height, which the rest of this file goes
     to some trouble to match against the live Elementor original. That is the
     trade: the text is a condition of using reCAPTCHA without the badge.
+
+    THE {' '} EXPRESSIONS ARE LOAD-BEARING. Astro's compressHTML is on by
+    default and
+    collapses the whitespace between a text node and an adjacent tag to
+    nothing, so indenting this sentence across lines rendered it as
+    "Google'sPrivacy PolicyandTerms of Serviceapply." An expression is output,
+    not template, so it is not compressed — and unlike a literal space at the
+    end of a line it also survives the file being reformatted.
   */}
   <p class="ef__rc">
-    Protected by reCAPTCHA — Google&rsquo;s
-    <a href={RECAPTCHA_NOTICE_LINKS.privacy} target="_blank" rel="noopener noreferrer">
-      Privacy Policy</a
-    >
-    and
-    <a href={RECAPTCHA_NOTICE_LINKS.terms} target="_blank" rel="noopener noreferrer">
-      Terms of Service</a
-    >
-    apply.
+    Protected by reCAPTCHA — Google&rsquo;s{' '}
+    <a href={RECAPTCHA_NOTICE_LINKS.privacy} target="_blank" rel="noopener noreferrer"
+      >Privacy Policy</a
+    >{' '}and{' '}
+    <a href={RECAPTCHA_NOTICE_LINKS.terms} target="_blank" rel="noopener noreferrer"
+      >Terms of Service</a
+    >{' '}apply.
   </p>
 </form>
 
