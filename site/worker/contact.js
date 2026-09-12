@@ -341,14 +341,30 @@ function notificationEmail(env, v, meta) {
     .filter((line) => line !== null)
     .join('\n');
 
-  // No Cc. Notifications go to the client and nowhere else — TBOX Studio is not
-  // copied on enquiries. This was `cc: [env.CONTACT_CC]` and was removed on
-  // request; do not reinstate it without being asked, and note that removing the
-  // var alone is not enough, because a var can be set on the Worker outside this
-  // repo.
+  // Cc, on the NOTIFICATION only — never on the confirmation below, which goes
+  // to the enquirer and would put a third party's address in front of every
+  // visitor who fills in the form.
+  //
+  // This has been on, off and on again, so the state of it is worth reading
+  // before changing: notifications originally copied Paolo@tboxstudio.com, that
+  // was removed on request (`81e44d4`), and masoud@brandingcentres.com was added
+  // back on request afterwards. It is not an accident and it is not left over —
+  // do not remove it without being asked, the same way it should not have been
+  // re-added without being asked.
+  //
+  // Driven entirely by the CONTACT_CC var, and absent from the payload when the
+  // var is unset rather than sent as an empty array: a Worker that has not had
+  // the var set must not fail to notify the client. Commas separate addresses,
+  // so one var covers a second recipient without a code change.
+  const cc = String(env.CONTACT_CC || '')
+    .split(',')
+    .map((address) => address.trim())
+    .filter(Boolean);
+
   return {
     from: env.CONTACT_FROM,
     to: [env.CONTACT_TO],
+    ...(cc.length ? { cc } : {}),
     reply_to: [env.CONTACT_REPLY_TO],
     // `source` is in the subject so commercial-LP quote requests are separable
     // from the main landing page's enquiries in the inbox, without opening

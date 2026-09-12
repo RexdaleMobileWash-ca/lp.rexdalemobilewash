@@ -561,13 +561,23 @@ have replaced.
 |---|---|
 | From | `forms@brandingcentres.com` — the **shared** sending domain |
 | To | `dispatch@rexdalemobilewash.ca` |
-| Cc | *none* |
+| Cc | `masoud@brandingcentres.com` — notification only |
 | Reply-To | `dispatch@rexdalemobilewash.ca` |
 
-There is **no Cc on form notifications**. They used to copy
-`Paolo@tboxstudio.com`; that was removed on request, from both the payload in
-`worker/contact.js` and the `CONTACT_CC` var in `wrangler.jsonc`, so setting the
-var again would not bring it back on its own.
+**The Cc has been on, off and on again, so read this before changing it.**
+Notifications originally copied `Paolo@tboxstudio.com`; that was removed on
+request; `masoud@brandingcentres.com` was then added back on request. It is
+neither an accident nor a leftover — do not remove it without being asked, the
+same way it should not have been re-added without being asked.
+
+It is driven entirely by the `CONTACT_CC` var in `wrangler.jsonc`, so unsetting
+the var is enough to stop the copy: `worker/contact.js` omits the field from the
+Resend payload when the var is empty rather than sending an empty array.
+Addresses are comma-separated, so a second recipient needs no code change.
+
+**The Cc is on the notification only.** The enquirer's confirmation never
+carries it — copying a third party there would put that address in front of
+every visitor who fills in the form.
 
 `rexdalemobilewash.ca` is **never** used as a sending domain. That is the whole
 point: no SPF, DKIM or DMARC record of the client's is involved, so nothing this
