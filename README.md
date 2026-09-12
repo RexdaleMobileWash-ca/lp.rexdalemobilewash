@@ -609,8 +609,76 @@ build runs and absent when the route executes: the build passes and the form
 500s in production. Everything else (addresses, site name) is a plain `var` in
 `wrangler.jsonc` on purpose, so it is visible in review.
 
+### reCAPTCHA v3 — the second Worker secret
+
+Every form on the site carries a **reCAPTCHA v3** token. There is no checkbox
+and no picture puzzle anywhere: v3 runs invisibly and returns a score from
+`0.0` (almost certainly a bot) to `1.0` (almost certainly a person), which
+`worker/contact.js` compares against `RECAPTCHA_MIN_SCORE` — a plain `var` in
+`wrangler.jsonc`, `0.5` in both environments, Google's own default.
+
+**It is v3, and that was established rather than assumed.** The distinction
+matters because v2 and v3 keys are wired completely differently and a v3 key
+rendered as a v2 widget fails at page load with *"Invalid site key type"*.
+Google's anchor endpoint refuses to render this key as a v2 widget and reports
+the same configuration flags as Google's published v3 demo key, where a real
+v2-invisible key renders happily. The evidence is written out in
+`site/src/lib/recaptcha.ts`.
+
+The **site key is public** and is baked into every page that has a form at
+build time by `src/lib/recaptcha.ts` — the one place it is named, the same way
+`lib/img.ts` is the one place the image host is named. Override it for a
+different key pair with the `PUBLIC_RECAPTCHA_SITE_KEY` **build** variable; a
+runtime value is not read during a prerender and would come out `undefined`.
+
+The **secret key** is a Worker secret, with exactly the same one-Worker trap as
+`RESEND_API_KEY`:
+
+```bash
+cd site
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RECAPTCHA_SECRET --env staging
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RECAPTCHA_SECRET --env ""
+```
+
+Three behaviours are deliberate, and each one is a choice about whether to lose
+spam or to lose real enquiries:
+
+| Situation | What happens | Why |
+|---|---|---|
+| `RECAPTCHA_SECRET` not set | **Allowed**, logged loudly | A Worker without the secret would otherwise refuse every enquiry on the site with no visible cause. Falls back to honeypot + rate limit. |
+| Google unreachable | **Allowed**, logged | An outage at Google must not take the client's lead form down. Nobody submitting can force this branch. |
+| Token missing, rejected, or scored below the threshold | **Refused**, `403` | A missing token is the signature of a script posting straight at `/api/contact`. |
+
+The third row is also why **the form now requires JavaScript**, which it did not
+before. v3 tokens can only be minted by script, so there is no no-JS path
+through it; a form that accepted tokenless posts would be exactly as open as it
+was. The plain `method="POST"` markup is kept so a no-JS browser gets an error
+naming the phone number rather than a button that does nothing.
+
+Every submission's score is written to the Worker logs, pass or fail
+(`observability` is on for both environments). **Raise `RECAPTCHA_MIN_SCORE`
+only against those logs.** Every tenth of a point refuses real people — first
+visits from a VPN or a locked-down corporate network score low for reasons that
+have nothing to do with being a bot, and reaching the client is the entire
+purpose of the form.
+
+`invalid-input-secret` in the logs means the secret does not match the site key
+the pages were built with. Check `src/lib/recaptcha.ts` against the key pair in
+the reCAPTCHA admin console — the pairing cannot be proven any other way, since
+`siteverify` will not comment on a secret without a real browser token.
+
+**The floating badge is hidden** (`.grecaptcha-badge { visibility: hidden }` in
+`components/Recaptcha.astro`) because on `/pressure-washing/` it sits under the
+fixed mobile call/quote bar. Google permits that **only** where the form carries
+the "protected by reCAPTCHA" disclosure instead, so every form does, under its
+submit button. The two are not separable: un-hide the badge before removing the
+text.
+
 ### Abuse protection, and what is actually protecting it
 
+- **reCAPTCHA v3** — a score from Google on every submission, thresholded in the
+  Worker. See the section above. This is the layer that stops a script posting
+  straight at the endpoint, which the honeypot cannot.
 - **Honeypot** — two hidden fields, `company` and `botcheck`. Anything that
   arrives with either one filled in is a bot, and gets a `202` rather than an
   error, because telling a bot it failed only makes it retry. This stops more
@@ -626,11 +694,13 @@ build runs and absent when the route executes: the build passes and the form
   this is: it is counted **per data centre** and is documented as "permissive,
   eventually consistent, and intentionally designed to not be used as an
   accurate accounting system". A caller spread across colos gets a multiple of
-  the limit. It is a brake on the naive case, not a guarantee.
-- **Not yet present:** a WAF rate limiting rule and Turnstile. Both need a
-  Cloudflare **zone** to attach to. `staging.lp.rexdalemobilewash.ca` is now in
-  the zone, so they can be attached and tested there ahead of the cutover rather
-  than added to a live site afterwards.
+  the limit. It is a brake on the naive case, not a guarantee. It stays because
+  it is the only layer that caps cost *before* any outbound request is made, and
+  the only one that still applies to a caller holding a valid token.
+- **Not yet present:** a WAF rate limiting rule. It needs a Cloudflare **zone**
+  to attach to, which now exists, but it is configured in the dashboard rather
+  than in this repo. Turnstile is no longer wanted — reCAPTCHA v3 fills that
+  slot, and running both would be two vendors doing one job.
 
 ### Client mail, re-proven after this change
 

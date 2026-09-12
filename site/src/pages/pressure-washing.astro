@@ -24,6 +24,12 @@
  */
 import { img } from '../lib/img';
 import Analytics from '../components/Analytics.astro';
+import Recaptcha from '../components/Recaptcha.astro';
+import { RECAPTCHA_FIELD, RECAPTCHA_NOTICE_LINKS } from '../lib/recaptcha';
+
+/* One action for both quote forms on this page, so the reCAPTCHA admin console
+   separates commercial-LP traffic from the main landing page's. */
+const RC_ACTION = 'quote_form';
 
 /* AD-9: this page's photography lives in the bucket like everything else,
    under the pw-assets/img/ prefix it already had. Fonts stay in public/ —
@@ -652,7 +658,7 @@ const FAQ_LD = {
             <div>
               <h2 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h2>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
-              <form data-submit="submitHero" novalidate style="display:grid;gap:14px">
+              <form data-submit="submitHero" novalidate data-rc-action={RC_ACTION} data-rc-field={RECAPTCHA_FIELD} style="display:grid;gap:14px">
                 <input type="hidden" name="source" value="Commercial LP — hero">
                 <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
                 <label style="display:block">
@@ -694,6 +700,10 @@ const FAQ_LD = {
                   <span style="display:inline">Get My Free Quote</span><span style="display:none">Sending…</span>
                 </button>
                 <p style="font-size:13px;color:#5A646E;margin:0;text-align:center">No obligation. We respond the same business day.</p>
+                {/* Required wherever the reCAPTCHA badge is hidden, which it is
+                    site-wide — the badge would sit under the fixed mobile
+                    call/quote bar on this page. See components/Recaptcha.astro. */}
+                <p style="font-size:11px;line-height:1.45;color:#7A858F;margin:0;text-align:center">Protected by reCAPTCHA — Google&rsquo;s <a href={RECAPTCHA_NOTICE_LINKS.privacy} target="_blank" rel="noopener noreferrer" style="color:inherit">Privacy Policy</a> and <a href={RECAPTCHA_NOTICE_LINKS.terms} target="_blank" rel="noopener noreferrer" style="color:inherit">Terms of Service</a> apply.</p>
               </form>
             </div>
           </div>
@@ -1147,7 +1157,7 @@ const FAQ_LD = {
             <div>
               <h3 style="font-family:Oswald,sans-serif;font-weight:600;text-transform:uppercase;font-size:clamp(21px,2.4vw,27px);line-height:1.1;margin:0 0 6px">Request a Quote</h3>
               <p style="font-size:15px;line-height:1.55;color:#4B5560;margin:0 0 20px">Tell us about the property. We'll follow up the same business day.</p>
-              <form data-submit="submitFinal" novalidate style="display:grid;gap:14px">
+              <form data-submit="submitFinal" novalidate data-rc-action={RC_ACTION} data-rc-field={RECAPTCHA_FIELD} style="display:grid;gap:14px">
                 <input type="hidden" name="source" value="Commercial LP — final CTA">
                 <input type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true" style="display:none">
                 <label style="display:block">
@@ -1189,6 +1199,10 @@ const FAQ_LD = {
                   <span style="display:inline">Get My Free Quote</span><span style="display:none">Sending…</span>
                 </button>
                 <p style="font-size:13px;color:#5A646E;margin:0;text-align:center">No obligation. We respond the same business day.</p>
+                {/* Required wherever the reCAPTCHA badge is hidden, which it is
+                    site-wide — the badge would sit under the fixed mobile
+                    call/quote bar on this page. See components/Recaptcha.astro. */}
+                <p style="font-size:11px;line-height:1.45;color:#7A858F;margin:0;text-align:center">Protected by reCAPTCHA — Google&rsquo;s <a href={RECAPTCHA_NOTICE_LINKS.privacy} target="_blank" rel="noopener noreferrer" style="color:inherit">Privacy Policy</a> and <a href={RECAPTCHA_NOTICE_LINKS.terms} target="_blank" rel="noopener noreferrer" style="color:inherit">Terms of Service</a> apply.</p>
               </form>
             </div>
           </div>
@@ -1227,6 +1241,9 @@ const FAQ_LD = {
     </div>
 
     </div>
+
+    {/* Once for the page — both quote forms share the global it defines. */}
+    <Recaptcha />
 
     <script is:inline>
       (function () {
@@ -1351,11 +1368,29 @@ const FAQ_LD = {
               var data = {};
               new FormData(form).forEach(function (value, key) { data[key] = value; });
 
-              fetch('/api/contact', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify(data)
-              })
+              /* reCAPTCHA v3 token, minted now rather than at page load: a
+                 token expires after two minutes and the Worker rejects a stale
+                 one. If it cannot be minted the field is left empty and the
+                 submission still goes — only the Worker knows whether
+                 verification is configured, and a blocked third-party script
+                 must not decide on its own that a real enquiry is
+                 undeliverable. */
+              var action = form.getAttribute('data-rc-action');
+              var field = form.getAttribute('data-rc-field');
+              var mint =
+                action && field && typeof window.rmwRecaptchaToken === 'function'
+                  ? window.rmwRecaptchaToken(action).catch(function () { return ''; })
+                  : Promise.resolve(null);
+
+              mint
+                .then(function (token) {
+                  if (field && token !== null) data[field] = token;
+                  return fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                    body: JSON.stringify(data)
+                  });
+                })
                 .then(function (r) {
                   return r.json().then(
                     function (j) { return { ok: r.ok && j.ok !== false, body: j }; },

@@ -24,9 +24,41 @@
  * settings instead is present while the build runs and absent when this code
  * executes: the build passes and the form 500s in production. Set it with
  * `wrangler secret put RESEND_API_KEY`, never in wrangler.jsonc vars.
+ *
+ * SPAM — four layers, in the order a submission meets them:
+ *
+ *   1. Origin check      a foreign Origin header is refused outright
+ *   2. Honeypot          a filled hidden field gets 202 and no email
+ *   3. Per-IP rate limit 8/min, permissive by construction (see below)
+ *   4. reCAPTCHA v3      a score from Google, thresholded here
+ *
+ * env.RECAPTCHA_SECRET is the second Worker SECRET and carries the same trap as
+ * the first: it belongs to ONE Worker, so staging and production each need
+ * their own `wrangler secret put RECAPTCHA_SECRET`. It is the SECRET half of
+ * the pair; the public site key is baked into the pages by
+ * src/lib/recaptcha.ts, which is also where the evidence that this key pair is
+ * v3 rather than v2 is written down.
  */
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+const SITEVERIFY_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify';
+
+/**
+ * reCAPTCHA v3 score below which a submission is refused.
+ *
+ * v3 does not return pass/fail — it returns 0.0 (almost certainly a bot) to 1.0
+ * (almost certainly a person) and the site decides. 0.5 is Google's documented
+ * default and is the right starting point for a form nobody has traffic data
+ * for yet. Override per environment with the RECAPTCHA_MIN_SCORE var.
+ *
+ * Raise it only against evidence. Every tenth of a point costs real enquiries:
+ * a first-time visitor on a VPN or a locked-down corporate network scores low
+ * for reasons that have nothing to do with being a bot, and this form's whole
+ * purpose is that those people reach the client. The Worker logs the score of
+ * every submission it sees, pass or fail, so the decision can be made from the
+ * observability logs rather than guessed at.
+ */
+const DEFAULT_MIN_SCORE = 0.5;
 
 // Caps are generous for a real enquiry and small enough that a payload can not
 // be used to blow out the Resend request.
@@ -61,6 +93,18 @@ const LIMITS = {
  * asked why the quote requests stopped.
  */
 const HONEYPOTS = ['company', 'botcheck'];
+
+/**
+ * Where the reCAPTCHA token arrives. `recaptcha_token` is what this site's
+ * forms post (RECAPTCHA_FIELD in src/lib/recaptcha.ts); `g-recaptcha-response`
+ * is the name Google's own widget uses, accepted so a hand-built form — or a
+ * v2 widget, if this ever becomes one — verifies without a Worker change.
+ *
+ * Tokens are around 500-2000 characters. The cap is there so a payload cannot
+ * be used to blow out the request to Google, for the same reason LIMITS exists.
+ */
+const TOKEN_FIELDS = ['recaptcha_token', 'g-recaptcha-response'];
+const TOKEN_MAX = 4000;
 
 // Deliberately loose. Address validity is proven by mail being answered, not
 // by a regex, and an over-strict pattern silently drops real enquiries.
@@ -124,6 +168,117 @@ function validate(v) {
   else if (!EMAIL_RE.test(v.email)) errors.email = 'That email address looks wrong.';
   if (!v.phone) errors.phone = 'Please enter a phone number.';
   return errors;
+}
+
+/** Pull the token out of the raw body, whichever of the two names carries it. */
+function readToken(body) {
+  for (const field of TOKEN_FIELDS) {
+    const value = String(body[field] ?? '').trim();
+    if (value) return value.slice(0, TOKEN_MAX);
+  }
+  return '';
+}
+
+/**
+ * Verify a reCAPTCHA v3 token with Google.
+ *
+ * Returns { ok, reason, score } — `ok:false` means refuse the submission.
+ *
+ * THREE DECISIONS WORTH KNOWING, because each one trades spam against real
+ * enquiries and the wrong default loses the client leads silently:
+ *
+ * 1. NO SECRET CONFIGURED -> ALLOW.
+ *    RECAPTCHA_SECRET is a Worker secret, and a secret belongs to ONE Worker:
+ *    a Worker created fresh, or a second environment, starts without it — the
+ *    exact trap RESEND_API_KEY documents further up. If a missing secret
+ *    blocked submissions, the first deploy to a Worker that has not had the
+ *    secret set would reject every enquiry on the site with no visible cause.
+ *    So it degrades to what protected the form before reCAPTCHA existed (the
+ *    honeypot, the Origin check and the per-IP rate limit) and says so loudly
+ *    in the logs. This branch is a deploy state, not something a submitter can
+ *    reach for.
+ *
+ * 2. GOOGLE UNREACHABLE -> ALLOW.
+ *    If siteverify times out or answers with something that is not JSON, the
+ *    submission goes through. An outage at Google must not take the client's
+ *    lead form down with it, and a caller cannot force this branch — they can
+ *    only make their own token invalid, which is case 3.
+ *
+ * 3. TOKEN MISSING, REJECTED, OR SCORED TOO LOW -> REFUSE.
+ *    A missing token is the ordinary signature of a script posting straight to
+ *    /api/contact, which is most of what this endpoint is here to stop. It also
+ *    means a visitor with JavaScript disabled can no longer submit: v3 is
+ *    JavaScript, there is no no-JS path through it, and a form that accepted
+ *    tokenless posts would be exactly as open as it was before.
+ *
+ * The `action` the token carries is logged but NOT enforced. Google suggests
+ * checking it, and here it would buy nothing: both forms post to this one
+ * endpoint and get identical treatment, so a token "replayed" from one form to
+ * the other has gained nothing. What enforcing it WOULD buy is a silent failure
+ * the day someone adds a third form and forgets to add its action to the list.
+ */
+async function verifyRecaptcha(env, token, ip) {
+  if (!env.RECAPTCHA_SECRET) {
+    console.warn(
+      'contact: RECAPTCHA_SECRET not set — submission accepted without verification. ' +
+        'Set it with `wrangler secret put RECAPTCHA_SECRET` on THIS environment.',
+    );
+    return { ok: true, reason: 'unconfigured' };
+  }
+
+  if (!token) return { ok: false, reason: 'missing-token' };
+
+  let data;
+  try {
+    const res = await fetch(SITEVERIFY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: env.RECAPTCHA_SECRET,
+        response: token,
+        // Google treats remoteip as optional and advisory. CF-Connecting-IP is
+        // the real client address at the edge; the Worker's own address is not.
+        ...(ip ? { remoteip: ip } : {}),
+      }),
+    });
+    data = await res.json();
+  } catch (err) {
+    console.error('contact: siteverify unreachable, allowing —', err.message);
+    return { ok: true, reason: 'verifier-unavailable' };
+  }
+
+  const score = typeof data.score === 'number' ? data.score : null;
+
+  if (!data.success) {
+    // `invalid-input-secret` here means the secret does not match the site key
+    // the pages are built with — check src/lib/recaptcha.ts against the key
+    // pair in the reCAPTCHA admin console before blaming the submission.
+    console.warn(
+      'contact: reCAPTCHA rejected —',
+      (data['error-codes'] || []).join(',') || 'no error code',
+    );
+    return { ok: false, reason: 'rejected', score };
+  }
+
+  const min = Number(env.RECAPTCHA_MIN_SCORE ?? DEFAULT_MIN_SCORE);
+  const threshold = Number.isFinite(min) ? min : DEFAULT_MIN_SCORE;
+
+  // Logged on every submission, not just failures: the only honest way to pick
+  // a threshold later is to see what real enquiries actually score here.
+  console.log(
+    `contact: reCAPTCHA score=${score === null ? 'n/a' : score} action=${
+      data.action || 'n/a'
+    } threshold=${threshold}`,
+  );
+
+  // A v2 token has no score. `success` is the whole answer there, so a null
+  // score passes rather than being compared against a threshold that means
+  // nothing for it.
+  if (score !== null && score < threshold) {
+    return { ok: false, reason: 'low-score', score };
+  }
+
+  return { ok: true, reason: 'verified', score };
 }
 
 function notificationEmail(env, v, meta) {
@@ -312,13 +467,18 @@ export async function handleContact(request, env, ctx) {
   // and intentionally designed to not be used as an accurate accounting
   // system". A caller spread across colos gets a multiple of this limit. It is
   // a brake on the naive case, not a guarantee. The honeypot above stops more
-  // real-world form spam than this does. The enforcing layer — a WAF rate
-  // limiting rule, and Turnstile — needs a Cloudflare ZONE to attach to, so it
-  // cannot exist while this is served from workers.dev; add it when the Worker
-  // gets a custom domain.
+  // real-world form spam than this does, and the reCAPTCHA check below stops
+  // more than either — this stays because it is the only layer that caps cost
+  // before any outbound request is made, and it is the one that still applies
+  // to a caller holding a valid token.
+  //
+  // A WAF rate limiting rule at the zone would be strictly better and is now
+  // possible (the Worker has a custom domain), but it is configured in the
+  // Cloudflare dashboard rather than here.
+  const ip = request.headers.get('CF-Connecting-IP') || '';
+
   if (env.CONTACT_RATE_LIMIT) {
-    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-    const { success } = await env.CONTACT_RATE_LIMIT.limit({ key: ip });
+    const { success } = await env.CONTACT_RATE_LIMIT.limit({ key: ip || 'unknown' });
     if (!success) {
       return json(429, {
         ok: false,
@@ -331,6 +491,25 @@ export async function handleContact(request, env, ctx) {
   const errors = validate(values);
   if (Object.keys(errors).length) {
     return json(400, { ok: false, error: 'Please check the form.', errors });
+  }
+
+  // AFTER validation, so a flood of malformed payloads costs a request to
+  // Google for each one — the rate limit above caps that, but not spending it
+  // at all is better. A visitor who fails validation is told about the field
+  // and submits again; the second submit mints a fresh token, so nothing is
+  // lost by having skipped the check on the first.
+  const check = await verifyRecaptcha(env, readToken(body), ip);
+  if (!check.ok) {
+    return json(403, {
+      ok: false,
+      // Deliberately not "you look like a bot". The people who read this are
+      // the false positives — everyone else is a script that does not read.
+      error:
+        'We could not verify this submission. Please try again, or call (416) 244-6497 and we will take the details over the phone.',
+      // For the deploy proof and the logs. It tells an operator whether the
+      // secret is wrong, the token never arrived, or the score was simply low.
+      reason: check.reason,
+    });
   }
 
   if (!env.RESEND_API_KEY) {

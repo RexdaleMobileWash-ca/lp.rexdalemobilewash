@@ -74,6 +74,42 @@ discloses the value. Ordinary deploys preserve it.
 secret, exposed on localhost only. A missing secret is otherwise invisible
 until a real visitor submits.
 
+## reCAPTCHA is v3, and there is a second Worker secret
+
+Every form posts a **reCAPTCHA v3** token. No checkbox, no puzzle — v3 returns
+a 0.0–1.0 score and `worker/contact.js` thresholds it against the
+`RECAPTCHA_MIN_SCORE` var (0.5, Google's default, in both environments).
+
+Do not assume v2 and do not "fix" this by rendering a widget: the key pair was
+tested against Google's anchor endpoint and behaves exactly like Google's
+published v3 demo key, and is refused by the v2 widget renderer. The evidence
+is in `site/src/lib/recaptcha.ts`, which is also the one place the public SITE
+key is named (mirroring `lib/img.ts` for the image host).
+
+`RECAPTCHA_SECRET` is a **Worker secret** with the same one-Worker trap as
+`RESEND_API_KEY` — set it per environment:
+
+```bash
+cd site
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RECAPTCHA_SECRET --env staging
+CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RECAPTCHA_SECRET --env ""
+```
+
+**The fail-open cases are deliberate, not oversights.** No secret set, or
+Google unreachable, both let the submission through and log it — a lead form
+that refuses everyone because of a missing secret or someone else's outage is
+worse than one that briefly falls back to the honeypot and rate limit. Only a
+missing, rejected or low-scoring token is refused (403). Neither fail-open
+branch is reachable by anyone submitting the form.
+
+**The form now requires JavaScript.** v3 tokens can only be minted by script,
+so the no-JS POST path that used to 303 to /thank-you now gets a 403. That is
+the point: accepting tokenless posts would leave the endpoint as open as it was.
+
+**The badge is hidden and the disclosure text under each submit button is what
+makes that allowed.** Do not delete the text without un-hiding the badge in
+`components/Recaptcha.astro`.
+
 ## Staging vs live
 
 - Staging: `https://staging-lp-rexdalemobilewash.ash-47a.workers.dev` **and**

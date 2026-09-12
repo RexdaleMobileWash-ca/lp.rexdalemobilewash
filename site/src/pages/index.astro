@@ -10,6 +10,7 @@ import Faq from '../components/Faq.astro';
 import Clients from '../components/Clients.astro';
 import ClosingCta from '../components/ClosingCta.astro';
 import Footer from '../components/Footer.astro';
+import Recaptcha from '../components/Recaptcha.astro';
 import { upload } from '../lib/img';
 ---
 
@@ -94,4 +95,8 @@ import { upload } from '../lib/img';
   </main>
 
   <Footer />
+
+  {/* Once for the page, not once per form — it defines a global. This page has
+      two EstimateForms (Hero and ClosingCta) and they share it. */}
+  <Recaptcha />
 </Base>

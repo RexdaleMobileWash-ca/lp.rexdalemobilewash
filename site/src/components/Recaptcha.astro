@@ -1,0 +1,89 @@
+---
+/**
+ * reCAPTCHA v3 loader. Include ONCE per page that carries a form — it defines a
+ * global, so a second copy on the same page would load the API twice.
+ *
+ *   index.astro            two Elementor-replica forms (Hero + ClosingCta)
+ *   pressure-washing.astro two commercial quote forms
+ *
+ * /privacy-policy/ and /thank-you/ have no form and deliberately do not load
+ * this: the API is ~200KB of third-party JavaScript and a page with nothing to
+ * protect should not pay for it.
+ *
+ * WHAT IT EXPOSES
+ *
+ *   window.rmwRecaptchaToken(action) -> Promise<string>
+ *
+ * Resolves with a fresh token, or rejects if the API never loaded. Callers get
+ * the token at SUBMIT time, never at page load: a v3 token expires after two
+ * minutes, so one minted on load is stale by the time anyone has filled in the
+ * form, and the Worker would reject it as `timeout-or-duplicate`.
+ *
+ * A caller that cannot get a token should post an EMPTY one and let the Worker
+ * answer, rather than refusing to submit. The Worker is the only thing that
+ * knows whether verification is configured at all (see RECAPTCHA_SECRET in
+ * worker/contact.js) — a browser extension blocking Google must not be able to
+ * decide that a real enquiry is undeliverable.
+ *
+ * `is:inline` on both scripts is deliberate: this is a third-party loader and a
+ * tiny shim, and keeping them in the page source means what runs is what is
+ * written here, in the order it is written — the same reason the GTM snippet in
+ * Base.astro is inline.
+ */
+import { RECAPTCHA_SITE_KEY, RECAPTCHA_SRC } from '../lib/recaptcha';
+---
+
+<script is:inline async src={RECAPTCHA_SRC} id="rc-api" data-rc-key={RECAPTCHA_SITE_KEY}
+></script>
+
+<script is:inline>
+  (function () {
+    var tag = document.getElementById('rc-api');
+    var KEY = tag && tag.getAttribute('data-rc-key');
+
+    /* The loader is async, so grecaptcha may not exist yet when someone submits
+       a form quickly. Wait for it rather than failing — but bounded, because a
+       blocked request never resolves and the visitor is sitting on a disabled
+       button while it does not. */
+    var WAIT_MS = 8000;
+
+    function whenLoaded() {
+      return new Promise(function (resolve, reject) {
+        var deadline = Date.now() + WAIT_MS;
+        (function poll() {
+          if (window.grecaptcha && window.grecaptcha.execute) return resolve();
+          if (Date.now() > deadline) {
+            return reject(new Error('reCAPTCHA did not load'));
+          }
+          setTimeout(poll, 100);
+        })();
+      });
+    }
+
+    window.rmwRecaptchaToken = function (action) {
+      if (!KEY) return Promise.reject(new Error('reCAPTCHA site key missing'));
+      return whenLoaded().then(function () {
+        return new Promise(function (resolve, reject) {
+          window.grecaptcha.ready(function () {
+            window.grecaptcha.execute(KEY, { action: action }).then(resolve, reject);
+          });
+        });
+      });
+    };
+  })();
+</script>
+
+<style is:global>
+  /*
+   * The floating badge is hidden, which Google allows only where the form
+   * carries the "protected by reCAPTCHA" disclosure instead. Every form on this
+   * site does — see RECAPTCHA_NOTICE_LINKS in lib/recaptcha.ts. If that text is
+   * ever removed, remove this rule too.
+   *
+   * visibility, not display:none — the badge is an iframe the API measures, and
+   * removing it from layout has been known to break execute() silently.
+   */
+  .grecaptcha-badge {
+    visibility: hidden;
+  }
+</style>

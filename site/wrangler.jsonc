@@ -71,24 +71,39 @@
   //
   // NOINDEX is read by worker/index.js. "false" here is the whole point of the
   // split — see the header comment in that file.
+  //
+  // RECAPTCHA_MIN_SCORE is the reCAPTCHA v3 threshold read by worker/contact.js.
+  // v3 returns 0.0-1.0 rather than pass/fail; 0.5 is Google's default. Raise it
+  // only against the scores in the observability logs — every tenth of a point
+  // refuses real enquiries from people on VPNs and locked-down corporate
+  // networks. The public SITE key is not here: it is baked into the pages at
+  // build time by src/lib/recaptcha.ts.
   "vars": {
     "SITE_NAME": "Rexdale Mobile Wash",
     "CONTACT_FROM": "Rexdale Mobile Wash <forms@brandingcentres.com>",
     "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
     "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
     "CONTACT_CONFIRM": "true",
+    "RECAPTCHA_MIN_SCORE": "0.5",
     "NOINDEX": "false"
   },
 
-  // RESEND_API_KEY is NOT here. It is a Worker secret, and a secret belongs to
-  // ONE Worker: the staging Worker already has it, the production Worker starts
-  // without it, and until it is set the form 500s on the live domain.
+  // TWO SECRETS, AND NEITHER IS HERE: RESEND_API_KEY and RECAPTCHA_SECRET.
+  //
+  // A secret belongs to ONE Worker, so each environment needs its own copy —
+  // this is the trap RESEND_API_KEY already documented and RECAPTCHA_SECRET
+  // inherits. Without RESEND_API_KEY the form 500s. Without RECAPTCHA_SECRET
+  // the form still works but accepts unverified submissions and says so in the
+  // logs, which is deliberate: a missing secret must not reject every enquiry.
   //     cd site
-  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY
-  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret list
-  // Adding it as a Build variable instead is the trap: it is present while the
-  // build runs and absent when the route executes, so the build passes and the
-  // form 500s in production.
+  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RESEND_API_KEY   --env ""
+  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret put RECAPTCHA_SECRET --env ""
+  //     CLOUDFLARE_API_TOKEN="$CF_API_TOKEN" npx wrangler secret list --env ""
+  // ...and the same three with `--env staging`.
+  //
+  // Adding either as a Build variable instead is the trap: it is present while
+  // the build runs and absent when the route executes, so the build passes and
+  // the form fails in production.
 
   // Per-IP rate limit on the form. A public form with no limit is a spam relay,
   // and the sending reputation it would burn is the shared domain's. `period`
@@ -131,6 +146,7 @@
         "CONTACT_TO": "dispatch@rexdalemobilewash.ca",
         "CONTACT_REPLY_TO": "dispatch@rexdalemobilewash.ca",
         "CONTACT_CONFIRM": "true",
+        "RECAPTCHA_MIN_SCORE": "0.5",
         "NOINDEX": "true"
       },
 
