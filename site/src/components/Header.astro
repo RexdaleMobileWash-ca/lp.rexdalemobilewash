@@ -10,10 +10,12 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
   <div class="hdr__inner">
     <!-- #4b38bd4e : width 75% (50% <=767), padding 10px -->
     <div class="hdr__brand">
-      <!-- #15be2f65 : text-align start. Original img width 18% / 16% <=1024 /
-           38% <=767. The mobile 38% is restored: it makes the logo 67px and
-           the header band 87px, as on the live site. Desktop is still capped
-           below the original 18% by the max-width below. -->
+      <!-- #15be2f65 : text-align start. The Elementor original sized the logo
+           as a percentage of this column (18% / 16% <=1024 / 38% <=767), which
+           is why the band used to measure 142px at 1440 but 78px at 768 and
+           107px again at 500 — the percentage is of a column that is 75% wide
+           above 767 and 50% below it. The logo is now a fixed height in px
+           (--hdr-logo), so the band is one predictable size per state. -->
       <a href="https://www.rexdalemobilewash.ca/">
         <img src={LOGO} alt="Rexdale Mobile Wash - Logo" width="200" height="200" />
       </a>
@@ -30,12 +32,28 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
 </header>
 
 <style>
+  /* Band height is driven entirely by these two values, so it is the same
+     number every time and can be read off without measuring:
+         band = --hdr-logo + 2 x --hdr-pad-y
+     Desktop resting 58 + 12 = 70px, half of the 142px this used to be.
+     Scrolled 44 + 10 = 54px. The CTA button is 43px tall and is the floor
+     below which the band cannot usefully go. */
   .hdr {
+    --hdr-logo: 58px;
+    --hdr-pad-y: 6px;
+
     background-color: #fff;
     box-shadow: 0 0 10px 0 rgb(0 0 0 / 50%);
     position: sticky;
     top: 0;
     z-index: 100;
+  }
+
+  /* Set by the script below once the page is scrolled off the top. */
+  .hdr.is-stuck {
+    --hdr-logo: 44px;
+    --hdr-pad-y: 5px;
+    box-shadow: 0 2px 12px 0 rgb(0 0 0 / 35%);
   }
 
   .hdr__inner {
@@ -50,19 +68,21 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
 
   .hdr__brand {
     width: 75%;
-    padding: 6px 10px;
+    padding: var(--hdr-pad-y) 10px;
     text-align: start;
+    transition: padding 0.18s ease;
   }
 
-  /* img width is a percentage of its container on the original, not a fixed px.
-     The cap keeps the logo — and so the header band — from growing unbounded
-     on wide viewports. */
+  /* Sized by height, not width: the band height then does not depend on the
+     logo file's aspect ratio, and a replacement logo cannot silently make the
+     header tall again. width:auto keeps it undistorted. */
   .hdr__brand img {
-    width: 13%;
-    min-width: 56px;
-    max-width: 130px;
-    height: auto;
+    height: var(--hdr-logo);
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
     display: block;
+    transition: height 0.18s ease;
   }
 
   .hdr__cta {
@@ -101,25 +121,62 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
     background-color: var(--c-blue-mid);
   }
 
-  @media (max-width: 1024px) {
-    .hdr__brand img {
-      width: 12%;
-    }
-  }
-
   @media (max-width: 767px) {
     .hdr__brand,
     .hdr__cta {
       width: 50%;
     }
-    /* 10px padding around a 38%-wide logo gives the live 67px mark and an
-       87px band. Left at 6px above 767 so the desktop header, which is
-       already capped smaller than the original by design, does not move. */
-    .hdr__brand {
-      padding: 10px;
+    /* Was an 87px band. 42 + 12 = 54px resting, 36 + 10 = 46px scrolled. */
+    .hdr {
+      --hdr-logo: 42px;
     }
+    .hdr.is-stuck {
+      --hdr-logo: 36px;
+    }
+    /* At its desktop size the button is 43px and would sit edge to edge in a
+       46px band. 40px leaves a margin at both states without dropping the tap
+       target below the 40px minimum. */
+    .hdr__btn {
+      padding: 4px 14px;
+    }
+    .hdr__btn-lead {
+      line-height: 1.4;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hdr__brand,
     .hdr__brand img {
-      width: 38%;
+      transition: none;
     }
   }
 </style>
+
+<script>
+  /* Shrinks the band once the page has moved off the top. The class is the
+     only thing this does — every size lives in the CSS above, so the header
+     still renders at its full resting size with JS off or before hydration. */
+  const hdr = document.querySelector<HTMLElement>('.hdr');
+
+  if (hdr) {
+    let queued = false;
+
+    const apply = () => {
+      queued = false;
+      hdr.classList.toggle('is-stuck', window.scrollY > 8);
+    };
+
+    /* Run once on load: a reload part-way down the page starts scrolled. */
+    apply();
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(apply);
+      },
+      { passive: true },
+    );
+  }
+</script>
