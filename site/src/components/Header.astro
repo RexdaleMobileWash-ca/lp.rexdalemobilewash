@@ -35,11 +35,13 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
   /* Band height is driven entirely by these two values, so it is the same
      number every time and can be read off without measuring:
          band = --hdr-logo + 2 x --hdr-pad-y
-     Desktop resting 58 + 12 = 70px, half of the 142px this used to be.
-     Scrolled 44 + 10 = 54px. The CTA button is 43px tall and is the floor
-     below which the band cannot usefully go. */
+     Desktop 44 + 12 = 56px resting, 34 + 10 = 44px scrolled. Mobile is
+     38 + 12 = 50px resting and shares the 44px scrolled size.
+     The floor is the CTA button, trimmed to 40px below — a band cannot go
+     under it without taking the phone tap target below 40px, which is the
+     one element on this header that has to stay easy to hit. */
   .hdr {
-    --hdr-logo: 58px;
+    --hdr-logo: 44px;
     --hdr-pad-y: 6px;
 
     background-color: #fff;
@@ -51,7 +53,7 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
 
   /* Set by the script below once the page is scrolled off the top. */
   .hdr.is-stuck {
-    --hdr-logo: 44px;
+    --hdr-logo: 34px;
     --hdr-pad-y: 5px;
     box-shadow: 0 2px 12px 0 rgb(0 0 0 / 35%);
   }
@@ -99,21 +101,22 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
     font-family: var(--f-body);
     font-weight: 500;
     font-size: 15px;
-    /* The live button is two differently-sized lines: an inline
-         <span style="font-size:12px;line-height:1.5em">Contact Us</span>
-       over the number at the button's own 15px/1. That is what makes it
-       43px tall rather than 49px. */
+    /* Two differently-sized lines: an inline "Contact Us" over the number at
+       the button's own 15px/1. Tightening the lead's line-height from the
+       live site's 1.5em to 1.25 takes the button from 43px to 40px, which is
+       what lets the scrolled band reach 44px. Do not go below 40px — that is
+       the minimum comfortable tap target for the phone number. */
     line-height: 1;
     text-align: center;
     text-decoration: none;
-    padding: 5px 15px;
+    padding: 4px 15px;
     border-radius: 3px;
     transition: background-color 0.3s;
   }
 
   .hdr__btn-lead {
     font-size: 12px;
-    line-height: 1.5em;
+    line-height: 1.25;
   }
 
   .hdr__btn:hover,
@@ -126,21 +129,11 @@ const LOGO = upload('Rexdale-Mobile-Wash-Logo.webp');
     .hdr__cta {
       width: 50%;
     }
-    /* Was an 87px band. 42 + 12 = 54px resting, 36 + 10 = 46px scrolled. */
+    /* Was an 87px band, now 38 + 12 = 50px resting. The scrolled size is not
+       overridden: 44px is already at the button floor, so mobile and desktop
+       land on the same number once the page moves. */
     .hdr {
-      --hdr-logo: 42px;
-    }
-    .hdr.is-stuck {
-      --hdr-logo: 36px;
-    }
-    /* At its desktop size the button is 43px and would sit edge to edge in a
-       46px band. 40px leaves a margin at both states without dropping the tap
-       target below the 40px minimum. */
-    .hdr__btn {
-      padding: 4px 14px;
-    }
-    .hdr__btn-lead {
-      line-height: 1.4;
+      --hdr-logo: 38px;
     }
   }
 
